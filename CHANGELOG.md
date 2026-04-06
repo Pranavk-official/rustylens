@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-04-06
+
+### Fixed
+
+- Fix Flatpak CI: use `ghcr.io/flathub-infra/flatpak-github-actions:gnome-49` (old Docker Hub image removed)
+- Fix AppImage CI: add `NO_STRIP=1` to skip linuxdeploy's bundled strip that fails on Arch's `.relr.dyn` ELF sections
+
 ## [0.1.2] - 2026-04-06
 
 ### Fixed

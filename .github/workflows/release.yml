@@ -54,7 +54,7 @@ jobs:
     name: Build Flatpak
     runs-on: ubuntu-latest
     container:
-      image: bilelmoussaoui/flatpak-github-actions:gnome-49
+      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-49
       options: --privileged
     steps:
       - uses: actions/checkout@v4
@@ -126,6 +126,7 @@ jobs:
           DEPLOY_GTK_VERSION: "4"
           DISABLE_WAYLAND: ""
           APPIMAGE_EXTRACT_AND_RUN: "1"
+          NO_STRIP: "1"
         run: |
           APP_ID="io.github.pranavk_official.RustyLens"
           ARCH="$(uname -m)"
