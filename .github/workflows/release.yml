@@ -113,40 +113,64 @@ jobs:
           cp "data/${APP_ID}.desktop" AppDir/
           cp "data/icons/hicolor/scalable/apps/${APP_ID}.svg" AppDir/
 
-      - name: Download linuxdeploy and GTK plugin
+      - name: Download linuxdeploy
         run: |
           ARCH="$(uname -m)"
           wget -q "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-${ARCH}.AppImage" -O linuxdeploy
           chmod +x linuxdeploy
-          wget -q "https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-gtk/master/linuxdeploy-plugin-gtk.sh" -O linuxdeploy-plugin-gtk.sh
-          chmod +x linuxdeploy-plugin-gtk.sh
 
       - name: Build AppImage
         env:
-          DEPLOY_GTK_VERSION: "4"
-          DISABLE_WAYLAND: ""
           APPIMAGE_EXTRACT_AND_RUN: "1"
           NO_STRIP: "1"
         run: |
           APP_ID="io.github.pranavk_official.RustyLens"
           ARCH="$(uname -m)"
+          GTK_LIBDIR="$(pkg-config --variable=libdir gtk4)"
 
           # Bundle Adwaita icon theme for libadwaita
           mkdir -p AppDir/usr/share/icons
           cp -r /usr/share/icons/Adwaita AppDir/usr/share/icons/ 2>/dev/null || true
           cp -r /usr/share/icons/hicolor AppDir/usr/share/icons/ 2>/dev/null || true
 
+          # Bundle GTK4 modules and GDK pixbuf loaders
+          if [ -d "${GTK_LIBDIR}/gtk-4.0" ]; then
+            mkdir -p AppDir/usr/lib/gtk-4.0
+            cp -r "${GTK_LIBDIR}/gtk-4.0/"* AppDir/usr/lib/gtk-4.0/
+          fi
+          mkdir -p AppDir/usr/lib/gdk-pixbuf-2.0
+          cp -r "${GTK_LIBDIR}/gdk-pixbuf-2.0/"* AppDir/usr/lib/gdk-pixbuf-2.0/ 2>/dev/null || true
+          GDK_PIXBUF_MODULEDIR=AppDir/usr/lib/gdk-pixbuf-2.0/2.10.0/loaders \
+            gdk-pixbuf-query-loaders > AppDir/usr/lib/gdk-pixbuf-2.0/2.10.0/loaders.cache 2>/dev/null || true
+
           # Compile GLib schemas
           mkdir -p AppDir/usr/share/glib-2.0/schemas
           cp /usr/share/glib-2.0/schemas/*.xml AppDir/usr/share/glib-2.0/schemas/ 2>/dev/null || true
           glib-compile-schemas AppDir/usr/share/glib-2.0/schemas/
+
+          # Create custom AppRun with GTK/GLib env vars
+          cat > AppRun << 'APPRUN'
+          #!/bin/bash
+          SELF="$(readlink -f "$0")"
+          HERE="${SELF%/*}"
+          export PATH="${HERE}/usr/bin:${PATH}"
+          export LD_LIBRARY_PATH="${HERE}/usr/lib:${LD_LIBRARY_PATH}"
+          export XDG_DATA_DIRS="${HERE}/usr/share:${XDG_DATA_DIRS:-/usr/share}"
+          export GSETTINGS_SCHEMA_DIR="${HERE}/usr/share/glib-2.0/schemas"
+          export GDK_PIXBUF_MODULE_FILE="${HERE}/usr/lib/gdk-pixbuf-2.0/2.10.0/loaders.cache"
+          export GTK_PATH="${HERE}/usr/lib/gtk-4.0"
+          export GTK_IM_MODULE_FILE=""
+          export GSK_RENDERER="${GSK_RENDERER:-ngl}"
+          exec "${HERE}/usr/bin/rustylens" "$@"
+          APPRUN
+          chmod +x AppRun
 
           ./linuxdeploy \
             --appdir AppDir \
             --executable target/release/rustylens \
             --desktop-file "data/${APP_ID}.desktop" \
             --icon-file "data/icons/hicolor/scalable/apps/${APP_ID}.svg" \
-            --plugin gtk \
+            --custom-apprun AppRun \
             --output appimage
 
           mv RustyLens*.AppImage "RustyLens-${ARCH}.AppImage" 2>/dev/null || \
@@ -161,6 +185,7 @@ jobs:
   release:
     name: Publish release
     needs: [binary, flatpak, appimage]
+    if: always() && contains(needs.*.result, 'success')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -169,25 +194,26 @@ jobs:
         id: changelog
         run: |
           TAG="${GITHUB_REF#refs/tags/v}"
-          # Extract the section for this version from CHANGELOG.md
           BODY=$(awk "/^## \[${TAG}\]/{found=1; next} /^## \[/{found=0} found" CHANGELOG.md)
           if [ -z "$BODY" ]; then
             BODY="Release ${TAG}"
           fi
-          # Write to file to preserve newlines
           echo "$BODY" > release_body.md
 
       - name: Download binary artifact
+        if: needs.binary.result == 'success'
         uses: actions/download-artifact@v4
         with:
           name: binary
 
       - name: Download Flatpak artifact
+        if: needs.flatpak.result == 'success'
         uses: actions/download-artifact@v4
         with:
           name: flatpak
 
       - name: Download AppImage artifact
+        if: needs.appimage.result == 'success'
         uses: actions/download-artifact@v4
         with:
           name: appimage
@@ -200,3 +226,4 @@ jobs:
             rustylens-linux-x86_64.tar.gz
             rustylens.flatpak
             RustyLens-*.AppImage
+          fail_on_unmatched_files: false
