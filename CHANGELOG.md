@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-04-06
+
+### Fixed
+
+- Fix Flatpak CI: remove `--offline` and vendored-sources cargo config — `vendor/` is gitignored and absent in CI checkout; allow flatpak-builder to fetch crates online
+- Fix AppImage CI: remove redundant `mv *.AppImage` rename step — linuxdeploy already creates the output as `RustyLens-x86_64.AppImage`; the previous guard (`if [ ! -f ... ]`) did not prevent the exit-1 error reliably
+
 ## [0.1.3] - 2026-04-06
 
 ### Fixed

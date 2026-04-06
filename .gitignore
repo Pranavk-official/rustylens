@@ -11,6 +11,7 @@ repo/
 
 # AppImage
 AppDir/
+AppRun
 *.AppImage
 linuxdeploy*
 
