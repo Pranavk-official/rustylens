@@ -91,6 +91,7 @@
                 }
             },
             "build-commands": [
+                "mkdir -p .cargo && echo '[source.crates-io]\nreplace-with = \"vendored-sources\"\n[source.vendored-sources]\ndirectory = \"vendor\"' > .cargo/config.toml",
                 "cargo build --release --offline",
                 "install -Dm755 target/release/rustylens /app/bin/rustylens",
                 "install -Dm644 data/io.github.pranavk_official.RustyLens.desktop /app/share/applications/io.github.pranavk_official.RustyLens.desktop",

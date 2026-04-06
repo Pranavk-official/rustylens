@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-04-06
+
+### Fixed
+
+- Fix CI build: remove `.cargo/config.toml` that forced vendored sources (vendor dir is gitignored, breaking CI)
+- Generate cargo vendor config at Flatpak build time instead of committing it
+
+### Changed
+
+- Add `/.cargo/` to `.gitignore`
+
 ## [0.1.1] - 2026-04-06
 
 ### Changed

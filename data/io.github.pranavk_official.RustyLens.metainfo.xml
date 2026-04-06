@@ -47,6 +47,11 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="0.1.2" date="2026-04-06">
+      <description>
+        <p>Fix CI build and vendored dependency configuration.</p>
+      </description>
+    </release>
     <release version="0.1.1" date="2026-04-06">
       <description>
         <p>Improved word selection, Flatpak build fixes, and GNOME 49 runtime upgrade.</p>

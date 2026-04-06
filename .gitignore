@@ -1,6 +1,7 @@
 # Rust / Cargo
 /target/
 /vendor/
+/.cargo/
 
 # Flatpak
 .flatpak-builder/
