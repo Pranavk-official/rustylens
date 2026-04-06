@@ -173,8 +173,10 @@ jobs:
             --custom-apprun AppRun \
             --output appimage
 
-          mv RustyLens*.AppImage "RustyLens-${ARCH}.AppImage" 2>/dev/null || \
-          mv *.AppImage "RustyLens-${ARCH}.AppImage"
+          # Rename only if needed (linuxdeploy may already use the correct name)
+          if [ ! -f "RustyLens-${ARCH}.AppImage" ]; then
+            mv *.AppImage "RustyLens-${ARCH}.AppImage"
+          fi
 
       - name: Upload AppImage artifact
         uses: actions/upload-artifact@v4
