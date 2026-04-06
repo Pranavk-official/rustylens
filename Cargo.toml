@@ -1,0 +1,24 @@
+[package]
+name = "rustylens"
+version = "0.1.0"
+edition = "2021"
+description = "Lightweight Linux app for image preview and OCR text extraction"
+authors = ["RustyLens Contributors"]
+license = "GPL-3.0-or-later"
+
+[[bin]]
+name = "rustylens"
+path = "src/main.rs"
+
+[dependencies]
+gtk4 = { version = "0.11", features = ["v4_12"] }
+libadwaita = { version = "0.9", features = ["v1_4"] }
+ashpd = { version = "0.13", features = ["gtk4", "screenshot", "file_chooser"] }
+leptess = "0.14"
+tokio = { version = "1", features = ["rt", "net", "time"] }
+
+[profile.release]
+strip = true
+lto = true
+opt-level = "s"
+codegen-units = 1

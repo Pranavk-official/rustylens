@@ -1,0 +1,94 @@
+{
+    "id": "com.example.RustyLens",
+    "runtime": "org.gnome.Platform",
+    "runtime-version": "46",
+    "sdk": "org.gnome.Sdk",
+    "sdk-extensions": [
+        "org.freedesktop.Sdk.Extension.rust-stable"
+    ],
+    "command": "rustylens",
+    "finish-args": [
+        "--share=ipc",
+        "--socket=fallback-x11",
+        "--socket=wayland",
+        "--device=dri",
+        "--talk-name=org.freedesktop.portal.Desktop",
+        "--talk-name=org.freedesktop.portal.FileChooser",
+        "--talk-name=org.freedesktop.portal.Screenshot"
+    ],
+    "build-options": {
+        "append-path": "/usr/lib/sdk/rust-stable/bin",
+        "env": {
+            "CARGO_HOME": "/run/build/rustylens/cargo",
+            "RUST_BACKTRACE": "1"
+        }
+    },
+    "modules": [
+        {
+            "name": "leptonica",
+            "buildsystem": "cmake-ninja",
+            "config-opts": [
+                "-DCMAKE_BUILD_TYPE=Release",
+                "-DBUILD_PROG=OFF",
+                "-DBUILD_SHARED_LIBS=ON"
+            ],
+            "sources": [
+                {
+                    "type": "git",
+                    "url": "https://github.com/DanBloomberg/leptonica.git",
+                    "tag": "1.85.0"
+                }
+            ]
+        },
+        {
+            "name": "tesseract",
+            "buildsystem": "cmake-ninja",
+            "config-opts": [
+                "-DCMAKE_BUILD_TYPE=Release",
+                "-DBUILD_TRAINING_TOOLS=OFF",
+                "-DBUILD_SHARED_LIBS=ON"
+            ],
+            "sources": [
+                {
+                    "type": "git",
+                    "url": "https://github.com/tesseract-ocr/tesseract.git",
+                    "tag": "5.5.0"
+                }
+            ]
+        },
+        {
+            "name": "tessdata",
+            "buildsystem": "simple",
+            "build-commands": [
+                "install -Dm644 *.traineddata -t /app/share/tessdata/"
+            ],
+            "sources": [
+                {
+                    "type": "git",
+                    "url": "https://github.com/tesseract-ocr/tessdata_fast.git",
+                    "tag": "4.1.0"
+                }
+            ]
+        },
+        {
+            "name": "rustylens",
+            "buildsystem": "simple",
+            "build-options": {
+                "env": {
+                    "TESSDATA_PREFIX": "/app/share/tessdata"
+                }
+            },
+            "build-commands": [
+                "cargo --offline fetch --manifest-path Cargo.toml --verbose",
+                "cargo --offline build --release --verbose",
+                "install -Dm755 target/release/rustylens /app/bin/rustylens"
+            ],
+            "sources": [
+                {
+                    "type": "dir",
+                    "path": "."
+                }
+            ]
+        }
+    ]
+}

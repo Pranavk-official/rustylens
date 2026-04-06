@@ -1,0 +1,20 @@
+# Rust / Cargo
+/target/
+
+# Flatpak
+.flatpak-builder/
+build-dir/
+repo/
+*.flatpak
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Claude Code
+skills-lock.json
+.agents/
+.claude/
