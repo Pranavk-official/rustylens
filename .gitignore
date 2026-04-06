@@ -1,11 +1,17 @@
 # Rust / Cargo
 /target/
+/vendor/
 
 # Flatpak
 .flatpak-builder/
 build-dir/
 repo/
 *.flatpak
+
+# AppImage
+AppDir/
+*.AppImage
+linuxdeploy*
 
 # IDE
 .idea/

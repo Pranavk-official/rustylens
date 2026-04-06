@@ -1,0 +1,16 @@
+[Desktop Entry]
+Name=RustyLens
+Comment=Lightweight OCR tool for the Linux desktop
+Exec=rustylens %f
+Icon=io.github.pranavk_official.RustyLens
+Terminal=false
+Type=Application
+Categories=Utility;
+Keywords=OCR;text;extract;screenshot;lens;
+MimeType=image/png;image/jpeg;image/bmp;image/tiff;image/webp;
+StartupNotify=true
+Actions=capture;
+
+[Desktop Action capture]
+Name=Screenshot OCR
+Exec=rustylens --capture

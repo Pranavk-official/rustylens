@@ -1,7 +1,7 @@
 [package]
 name = "rustylens"
-version = "0.1.0"
-edition = "2021"
+version = "0.1.1"
+edition = "2024"
 description = "Lightweight Linux app for image preview and OCR text extraction"
 authors = ["RustyLens Contributors"]
 license = "GPL-3.0-or-later"

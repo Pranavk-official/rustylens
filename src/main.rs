@@ -9,7 +9,7 @@ fn main() {
     let capture_mode = std::env::args().any(|a| a == "--capture");
 
     let app = adw::Application::builder()
-        .application_id("com.example.RustyLens")
+        .application_id("io.github.pranavk_official.RustyLens")
         .build();
 
     app.connect_activate(move |app| {

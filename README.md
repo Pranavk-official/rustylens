@@ -1,6 +1,6 @@
 # RustyLens
 
-A lightweight, open-source OCR tool for the Linux desktop. Open an image or capture a screenshot, and RustyLens extracts the text using Tesseract — with bounding-box overlays and drag-to-select, similar to Google Lens.
+A lightweight, open-source OCR tool for the Linux desktop. Open an image or capture a screenshot, and RustyLens extracts the text using Tesseract — with bounding-box overlays and drag-to-select word copying.
 
 Built with Rust, GTK4, and libadwaita.
 
@@ -9,7 +9,7 @@ Built with Rust, GTK4, and libadwaita.
 ## Features
 
 - **OCR text extraction** with support for 100+ languages (auto-detects all installed Tesseract language packs)
-- **Drag-to-select** — draw a rectangle over the image to copy specific words, like Google Lens
+- **Drag-to-select** — click or drag across highlighted words to select them, then Ctrl+C to copy
 - **Bounding-box overlay** — recognised words are highlighted on the image preview
 - **Screenshot mode** — `rustylens --capture` grabs a screenshot via the XDG portal and runs OCR immediately
 - **Language selector** — dropdown to pick a specific language or use all installed languages at once
@@ -68,20 +68,37 @@ sudo dnf install tesseract-langpack-eng
 
 Download from [GitHub Releases](https://github.com/Pranavk-official/rustylens/releases):
 
-- **`rustylens-linux-x86_64.tar.gz`** — standalone binary (requires system GTK4, libadwaita, and Tesseract)
-- **`rustylens.flatpak`** — self-contained Flatpak bundle with all 128 language packs included
+| File | Description |
+|------|-------------|
+| `rustylens-linux-x86_64.tar.gz` | Standalone binary (requires system GTK4, libadwaita, Tesseract) |
+| `rustylens.flatpak` | Self-contained Flatpak bundle with all 128 language packs |
+| `RustyLens-x86_64.AppImage` | Portable AppImage with GTK4 and all libraries bundled |
 
-To install the Flatpak bundle:
+#### Install Flatpak bundle
 
 ```bash
 flatpak install --user rustylens.flatpak
 ```
 
-To install the standalone binary:
+#### Install AppImage
+
+```bash
+chmod +x RustyLens-x86_64.AppImage
+# Run directly:
+./RustyLens-x86_64.AppImage
+# Or move to a standard location:
+mv RustyLens-x86_64.AppImage ~/.local/bin/rustylens
+```
+
+#### Install standalone binary
 
 ```bash
 tar xzf rustylens-linux-x86_64.tar.gz
 sudo install -Dm755 rustylens /usr/local/bin/rustylens
+
+# Install desktop entry and icon so it shows up in your app launcher:
+sudo install -Dm644 data/io.github.pranavk_official.RustyLens.desktop /usr/share/applications/io.github.pranavk_official.RustyLens.desktop
+sudo install -Dm644 data/icons/hicolor/scalable/apps/io.github.pranavk_official.RustyLens.svg /usr/share/icons/hicolor/scalable/apps/io.github.pranavk_official.RustyLens.svg
 ```
 
 ### Build from source
@@ -98,17 +115,41 @@ The binary is at `target/release/rustylens` (~2 MB).
 
 ```bash
 cargo install --path .
+
+# Add desktop entry (so it appears in your app launcher):
+install -Dm644 data/io.github.pranavk_official.RustyLens.desktop ~/.local/share/applications/io.github.pranavk_official.RustyLens.desktop
+install -Dm644 data/icons/hicolor/scalable/apps/io.github.pranavk_official.RustyLens.svg ~/.local/share/icons/hicolor/scalable/apps/io.github.pranavk_official.RustyLens.svg
 ```
 
 ### Build Flatpak locally
 
 ```bash
 # Install the GNOME SDK (one-time setup):
-flatpak install flathub org.gnome.Platform//46 org.gnome.Sdk//46
-flatpak install flathub org.freedesktop.Sdk.Extension.rust-stable//24.08
+flatpak install flathub org.gnome.Platform//49 org.gnome.Sdk//49
+flatpak install flathub org.freedesktop.Sdk.Extension.rust-stable//25.08
 
 # Build and install:
-flatpak-builder --user --install --force-clean build-dir com.example.RustyLens.json
+flatpak-builder --user --install --force-clean build-dir io.github.pranavk_official.RustyLens.json
+```
+
+### Uninstall
+
+```bash
+# Standalone binary:
+sudo rm /usr/local/bin/rustylens
+sudo rm /usr/share/applications/io.github.pranavk_official.RustyLens.desktop
+sudo rm /usr/share/icons/hicolor/scalable/apps/io.github.pranavk_official.RustyLens.svg
+
+# cargo install:
+cargo uninstall rustylens
+rm ~/.local/share/applications/io.github.pranavk_official.RustyLens.desktop
+rm ~/.local/share/icons/hicolor/scalable/apps/io.github.pranavk_official.RustyLens.svg
+
+# Flatpak:
+flatpak uninstall --user io.github.pranavk_official.RustyLens
+
+# AppImage — just delete the file:
+rm ~/.local/bin/rustylens  # or wherever you placed it
 ```
 
 ## Usage
@@ -121,7 +162,7 @@ rustylens
 
 1. Click **Open Image** to pick an image through your desktop's file chooser.
 2. OCR runs automatically — extracted text appears in the panel below the image.
-3. **Drag-to-select**: click and drag over the image to draw a selection rectangle. Words inside the rectangle are highlighted and copied to the clipboard on release.
+3. **Select text**: click on any highlighted word to select it, or click and drag across multiple words to select a range. Press **Ctrl+C** to copy selected words to the clipboard.
 4. Use **Copy All Text** to copy everything at once.
 5. Change the OCR language from the dropdown in the header bar. "Auto (all)" uses every installed language pack.
 
@@ -136,11 +177,20 @@ Opens an interactive screenshot selection (via the XDG Desktop Portal), then loa
 ## Project Structure
 
 ```
-src/
-  main.rs     Entry point, CLI flag, application setup
-  ui.rs       Window construction, drag-to-select, drawing callbacks
-  portal.rs   XDG portal wrappers (file chooser, screenshot), background task helpers
-  ocr.rs      Tesseract OCR via leptess, language detection, TSV bbox parsing
+.
+├── data/
+│   ├── icons/hicolor/scalable/apps/
+│   │   └── io.github.pranavk_official.RustyLens.svg   App icon
+│   ├── io.github.pranavk_official.RustyLens.desktop    Desktop entry
+│   └── io.github.pranavk_official.RustyLens.metainfo.xml  AppStream metadata
+├── src/
+│   ├── main.rs      Entry point, CLI flag, application setup
+│   ├── ui.rs        Window construction, word selection, drawing callbacks
+│   ├── portal.rs    XDG portal wrappers (file chooser, screenshot), background task helpers
+│   └── ocr.rs       Tesseract OCR via leptess, language detection, TSV bbox parsing
+├── Cargo.toml
+├── CHANGELOG.md
+└── io.github.pranavk_official.RustyLens.json           Flatpak manifest
 ```
 
 ## How It Works
@@ -148,7 +198,7 @@ src/
 1. **Image loading** — the file chooser portal returns a `file://` URI, which is percent-decoded to a filesystem path and displayed in a `gtk::Picture` widget.
 2. **OCR** — runs on a background thread to avoid blocking the UI. Tesseract processes the image and returns both the full text and per-word bounding boxes (via TSV output).
 3. **Bounding boxes** — a transparent `gtk::DrawingArea` overlay renders word rectangles using Cairo, scaled to match the image's "Contain" fit.
-4. **Drag-to-select** — a `GestureDrag` handler tracks the selection rectangle. On release, all overlapping words are collected in reading order and copied to the clipboard.
+4. **Word selection** — a `GestureDrag` handler lets you click or drag across highlighted words to select a range. Ctrl+C copies selected words in reading order.
 5. **Portal integration** — XDG Desktop Portals (via ashpd/zbus) handle the file chooser and screenshot dialogs, running on a shared Tokio runtime for reliable D-Bus communication.
 
 ## Adding OCR Languages

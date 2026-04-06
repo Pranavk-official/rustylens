@@ -1,6 +1,6 @@
 use std::{cell::RefCell, collections::BTreeSet, rc::Rc};
 
-use gtk4::{self as gtk, cairo, prelude::*};
+use gtk4::{self as gtk, cairo, glib, prelude::*};
 use libadwaita as adw;
 
 use crate::ocr::{self, OcrResult};
@@ -23,6 +23,8 @@ pub struct AppState {
     lang_list: Vec<String>,
     /// Indices of currently selected (highlighted) words.
     selected_words: Rc<RefCell<BTreeSet<usize>>>,
+    /// Anchor word index where the drag started (for range selection).
+    anchor_index: Rc<RefCell<Option<usize>>>,
 }
 
 impl AppState {
@@ -138,6 +140,7 @@ pub fn build_main_window(app: &adw::Application) -> (adw::ApplicationWindow, App
         lang_dropdown: lang_dropdown.clone(),
         lang_list: lang_list.clone(),
         selected_words: Rc::new(RefCell::new(BTreeSet::new())),
+        anchor_index: Rc::new(RefCell::new(None)),
     };
 
     // DrawingArea draw callback
@@ -152,68 +155,96 @@ pub fn build_main_window(app: &adw::Application) -> (adw::ApplicationWindow, App
         });
     }
 
-    // Click/drag on highlighted words to select them
+    // Click/drag on highlighted words to select them (text-editor style range)
     {
         let state = state.clone();
         let drag = gtk::GestureDrag::new();
 
-        // On press: clear previous selection, select word under cursor
+        // On press: set anchor word, clear previous selection
         drag.connect_drag_begin({
             let state = state.clone();
             move |_, x, y| {
+                let anchor = word_index_at(&state, x, y);
+                *state.anchor_index.borrow_mut() = anchor;
                 state.selected_words.borrow_mut().clear();
-                select_word_at(&state, x, y);
+                if let Some(i) = anchor {
+                    state.selected_words.borrow_mut().insert(i);
+                }
                 state.drawing_area.queue_draw();
             }
         });
 
-        // While dragging: add any word the cursor passes over
+        // While dragging: select range from anchor to current word
         drag.connect_drag_update({
             let state = state.clone();
             move |gesture, off_x, off_y| {
+                let Some(anchor) = *state.anchor_index.borrow() else {
+                    return;
+                };
                 if let Some((sx, sy)) = gesture.start_point() {
-                    select_word_at(&state, sx + off_x, sy + off_y);
-                    state.drawing_area.queue_draw();
-                }
-            }
-        });
-
-        // On release: copy selected words to clipboard
-        drag.connect_drag_end({
-            let state = state.clone();
-            move |_, _, _| {
-                let sel = state.selected_words.borrow();
-                if sel.is_empty() {
-                    return;
-                }
-
-                let guard = state.ocr_result.borrow();
-                let Some(ocr) = guard.as_ref() else { return };
-
-                let text: Vec<&str> = sel
-                    .iter()
-                    .filter_map(|&i| ocr.words.get(i).map(|w| w.text.as_str()))
-                    .collect();
-
-                if text.is_empty() {
-                    return;
-                }
-
-                let joined = text.join(" ");
-                if let Some(win) = state.drawing_area.root() {
-                    if let Some(win) = win.downcast_ref::<adw::ApplicationWindow>() {
-                        win.clipboard().set_text(&joined);
-                        state.toast_overlay.add_toast(adw::Toast::new(&format!(
-                            "Copied {} word{}",
-                            text.len(),
-                            if text.len() == 1 { "" } else { "s" }
-                        )));
+                    let current = word_index_at(&state, sx + off_x, sy + off_y);
+                    let mut sel = state.selected_words.borrow_mut();
+                    sel.clear();
+                    if let Some(end) = current {
+                        let lo = anchor.min(end);
+                        let hi = anchor.max(end);
+                        for i in lo..=hi {
+                            sel.insert(i);
+                        }
+                    } else {
+                        sel.insert(anchor);
                     }
                 }
+                state.drawing_area.queue_draw();
             }
         });
 
         drawing_area.add_controller(drag);
+    }
+
+    // Ctrl+C: copy selected words to clipboard
+    {
+        let state = state.clone();
+        let ctrl_c = gtk::ShortcutController::new();
+        ctrl_c.set_scope(gtk::ShortcutScope::Managed);
+        ctrl_c.add_shortcut(
+            gtk::Shortcut::new(
+                gtk::ShortcutTrigger::parse_string("<Control>c"),
+                Some(gtk::CallbackAction::new({
+                    let state = state.clone();
+                    move |_, _| {
+                        let sel = state.selected_words.borrow();
+                        if sel.is_empty() {
+                            return glib::Propagation::Proceed;
+                        }
+                        let guard = state.ocr_result.borrow();
+                        let Some(ocr) = guard.as_ref() else {
+                            return glib::Propagation::Proceed;
+                        };
+                        let text: Vec<&str> = sel
+                            .iter()
+                            .filter_map(|&i| ocr.words.get(i).map(|w| w.text.as_str()))
+                            .collect();
+                        if text.is_empty() {
+                            return glib::Propagation::Proceed;
+                        }
+                        let joined = text.join(" ");
+                        if let Some(win) = state.drawing_area.root() {
+                            if let Some(win) = win.downcast_ref::<adw::ApplicationWindow>() {
+                                win.clipboard().set_text(&joined);
+                                state.toast_overlay.add_toast(adw::Toast::new(&format!(
+                                    "Copied {} word{}",
+                                    text.len(),
+                                    if text.len() == 1 { "" } else { "s" }
+                                )));
+                            }
+                        }
+                        glib::Propagation::Stop
+                    }
+                })),
+            ),
+        );
+        window.add_controller(ctrl_c);
     }
 
     // Open Image button
@@ -247,7 +278,8 @@ pub fn build_main_window(app: &adw::Application) -> (adw::ApplicationWindow, App
         copy_btn.connect_clicked(move |_| {
             let (start, end) = state.text_buffer.bounds();
             let text = state.text_buffer.text(&start, &end, false);
-            if let Some(win) = window_weak.upgrade() {
+            let win = window_weak.upgrade();
+            if let Some(win) = win {
                 win.clipboard().set_text(&text);
                 state
                     .toast_overlay
@@ -302,14 +334,11 @@ pub fn load_image_path(path: &str, state: &AppState) {
 // Word hit-testing
 // ---------------------------------------------------------------------------
 
-/// Find which word (by index) is at widget coordinates (x, y) and add it
-/// to the selection set.
-fn select_word_at(state: &AppState, x: f64, y: f64) {
+/// Return the index of the word at widget coordinates (x, y), if any.
+fn word_index_at(state: &AppState, x: f64, y: f64) -> Option<usize> {
     let guard = state.ocr_result.borrow();
-    let Some(ocr) = guard.as_ref() else { return };
-    let Some(t) = image_transform(&state.picture, ocr) else {
-        return;
-    };
+    let ocr = guard.as_ref()?;
+    let t = image_transform(&state.picture, ocr)?;
 
     for (i, word) in ocr.words.iter().enumerate() {
         let wx = t.off_x + word.x as f64 * t.scale;
@@ -318,10 +347,10 @@ fn select_word_at(state: &AppState, x: f64, y: f64) {
         let wh = word.h as f64 * t.scale;
 
         if x >= wx && x <= wx + ww && y >= wy && y <= wy + wh {
-            state.selected_words.borrow_mut().insert(i);
-            return;
+            return Some(i);
         }
     }
+    None
 }
 
 // ---------------------------------------------------------------------------

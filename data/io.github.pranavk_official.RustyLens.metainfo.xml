@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.pranavk_official.RustyLens</id>
+
+  <name>RustyLens</name>
+  <summary>Lightweight OCR tool for the Linux desktop</summary>
+
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+
+  <developer id="io.github.pranavk_official">
+    <name>Pranav K</name>
+  </developer>
+
+  <description>
+    <p>
+      RustyLens is a lightweight, open-source OCR tool for the Linux desktop.
+      Open an image or capture a screenshot, and RustyLens extracts the text
+      using Tesseract — with bounding-box overlays and drag-to-select word
+      copying, similar to Google Lens.
+    </p>
+    <p>Features include:</p>
+    <ul>
+      <li>OCR text extraction with support for 100+ languages</li>
+      <li>Drag-to-select words on the image with Ctrl+C to copy</li>
+      <li>Bounding-box overlay highlighting recognised words</li>
+      <li>Screenshot capture mode via XDG Desktop Portal</li>
+      <li>Language selector with auto-detection of installed Tesseract packs</li>
+    </ul>
+  </description>
+
+  <launchable type="desktop-id">io.github.pranavk_official.RustyLens.desktop</launchable>
+
+  <url type="homepage">https://github.com/Pranavk-official/rustylens</url>
+  <url type="bugtracker">https://github.com/Pranavk-official/rustylens/issues</url>
+  <url type="vcs-browser">https://github.com/Pranavk-official/rustylens</url>
+
+  <provides>
+    <binary>rustylens</binary>
+  </provides>
+
+  <branding>
+    <color type="primary" scheme_preference="light">#62a0ea</color>
+    <color type="primary" scheme_preference="dark">#1a5fb4</color>
+  </branding>
+
+  <content_rating type="oars-1.1" />
+
+  <releases>
+    <release version="0.1.1" date="2026-04-06">
+      <description>
+        <p>Improved word selection, Flatpak build fixes, and GNOME 49 runtime upgrade.</p>
+        <ul>
+          <li>Replace drag-to-select rectangle with anchor-based range selection (Ctrl+C to copy)</li>
+          <li>Upgrade Flatpak runtime from GNOME 46 to GNOME 49</li>
+          <li>Fix Flatpak build: add LLVM SDK extension for libclang</li>
+          <li>Add Flathub-ready metadata (desktop file, metainfo, icon)</li>
+          <li>Add AppImage build support in CI</li>
+          <li>Bump Rust edition to 2024</li>
+        </ul>
+      </description>
+    </release>
+    <release version="0.1.0" date="2026-04-06">
+      <description>
+        <p>Initial release of RustyLens.</p>
+      </description>
+    </release>
+  </releases>
+
+</component>

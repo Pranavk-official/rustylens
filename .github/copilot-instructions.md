@@ -28,7 +28,7 @@ Currently a single-file app (`src/main.rs`). When splitting into modules, use th
 | `portal.rs` | ashpd screenshot/file-chooser wrappers |
 | `ocr.rs` | leptess/Tesseract OCR wrappers |
 
-**Application ID:** `com.example.RustyLens`
+**Application ID:** `io.github.pranavk_official.RustyLens`
 
 ## Key Types
 
@@ -95,7 +95,7 @@ ashpd portals return `url::Url` values. Call `.to_string()` to get `file:///path
 
 ## Flatpak
 
-Manifest: `com.example.RustyLens.json` (GNOME Platform 46, Rust SDK extension). No `--share=network` — the app is fully local.
+Manifest: `io.github.pranavk_official.RustyLens.json` (GNOME Platform 46, Rust SDK extension). No `--share=network` — the app is fully local.
 
 Required D-Bus permissions for portals:
 - `org.freedesktop.portal.Desktop`
@@ -131,7 +131,7 @@ Currently a single-file app (`src/main.rs`). When splitting into modules, use th
 | `portal.rs` | ashpd screenshot/file-chooser wrappers |
 | `upload.rs` | reqwest HTTP upload logic |
 
-**Application ID:** `com.example.RustyLens`
+**Application ID:** `io.github.pranavk_official.RustyLens`
 
 ## Conventions
 
@@ -158,7 +158,7 @@ ashpd portals return `file://` URIs. Functions accepting file locations should d
 
 ## Flatpak
 
-Manifest: `com.example.RustyLens.json` (GNOME Platform 46, Rust SDK extension).
+Manifest: `io.github.pranavk_official.RustyLens.json` (GNOME Platform 46, Rust SDK extension).
 
 Required D-Bus permissions for portals:
 - `org.freedesktop.portal.Desktop`

@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-RustyLens — lightweight Linux desktop app for image preview and OCR text extraction. Rust + GTK4 + libadwaita. Two modes: `--capture` (portal screenshot → OCR) and windowed GUI (file chooser → image preview + drag-to-select OCR).
+RustyLens — lightweight Linux desktop app for image preview and OCR text extraction. Rust 2024 edition + GTK4 + libadwaita. Two modes: `--capture` (portal screenshot → OCR) and windowed GUI (file chooser → image preview + drag-to-select OCR + Ctrl+C to copy).
 
-**Application ID:** `com.example.RustyLens`
+**Application ID:** `io.github.pranavk_official.RustyLens`
 
 ## Build & Run
 
@@ -20,17 +20,22 @@ cargo build --release                # Release build (~2 MB)
 System deps (Arch): `sudo pacman -S clang leptonica tesseract tesseract-data-eng`
 System deps (Debian/Ubuntu): `sudo apt install clang libleptonica-dev libtesseract-dev tesseract-ocr-eng`
 
+### Flatpak (local)
+
+```bash
+flatpak-builder --user --install --force-clean build-dir io.github.pranavk_official.RustyLens.json
+```
+
 No test suite yet. When adding tests, prefer integration tests in `tests/` for portal/UI logic and unit tests for pure functions (e.g., `parse_tsv_words`).
 
 ## Architecture
 
-```
-src/
-  main.rs     — entry point, CLI flag, app setup
-  ui.rs       — AppState, window construction, drag-to-select, drawing callbacks
-  portal.rs   — shared tokio runtime, spawn_background/spawn_portal, XDG portal wrappers, uri_to_path
-  ocr.rs      — OcrResult/OcrWord types, ocr_file, installed_languages, TSV parsing
-```
+- `src/main.rs` — entry point, CLI flag, app setup
+- `src/ui.rs` — `AppState`, window construction, word selection, drawing callbacks
+- `src/portal.rs` — shared tokio runtime, `spawn_background`/`spawn_portal`, XDG portal wrappers, `uri_to_path`
+- `src/ocr.rs` — `OcrResult`/`OcrWord` types, `ocr_file`, `installed_languages`, TSV parsing
+- `data/` — desktop entry (with `--capture` action), AppStream metainfo XML, SVG icon
+- `io.github.pranavk_official.RustyLens.json` — Flatpak manifest
 
 ## Key Patterns
 
@@ -51,14 +56,15 @@ Both patterns keep non-`Send` types (`Rc<RefCell<T>>`, GTK widgets) on the main 
 - `installed_languages()` scans tessdata directories for `.traineddata` files
 - `LepTess: Send` — safe to move into `std::thread::spawn`
 - `set_source_resolution(70)` suppresses Tesseract's "Invalid resolution 0 dpi" warning
+- TSV parsing: `splitn(12, '\t')`, filters level 5 (word-level) with conf >= 0, columns 6–9 for bbox
 
 ### Widget state in closures
 
 `AppState` (GTK widget refs + `Rc<RefCell<..>>`) is cheaply cloned into closures. Use `widget.downgrade()` + `.upgrade()` only to break ownership cycles with the window.
 
-### Drag-to-select
+### Word selection
 
-`GestureDrag` on the `DrawingArea` tracks a selection rectangle. `draw_ocr_boxes` highlights words overlapping the drag. On release, `words_in_drag` collects word text in reading order and copies to clipboard. The `ImageTransform` struct (scale + offset) is shared between drawing and hit-testing.
+`GestureDrag` on the `DrawingArea` implements anchor-based range selection. On press, `word_index_at` finds the word under the cursor and sets it as the anchor. During drag, all words between anchor and current index are selected (contiguous range via `BTreeSet`). Selection is visual only — `Ctrl+C` (via `gtk::ShortcutController` on the window) copies selected words in reading order. `draw_ocr_boxes` highlights selected words with stronger opacity. The `ImageTransform` struct (scale + offset) is shared between drawing and hit-testing.
 
 ### Portal URIs vs file paths
 
@@ -66,4 +72,14 @@ ashpd returns `ashpd::Uri` (a string wrapper). `uri_to_path()` strips `file://` 
 
 ## Flatpak
 
-Manifest: `com.example.RustyLens.json` (GNOME Platform 46, Rust SDK extension). When adding new portal features, add the corresponding `--talk-name` to `finish-args`.
+Manifest: `io.github.pranavk_official.RustyLens.json` (GNOME Platform 49, Rust + LLVM20 SDK extensions). Bundles leptonica, tesseract, and tessdata_fast.
+
+- `LIBCLANG_PATH` and LLVM extension are required for `bindgen` (used by `leptonica-sys`)
+- `LIBRARY_PATH=/app/lib` is set on the rustylens module so the Rust linker finds leptonica/tesseract
+- `post-install` on leptonica copies `lept_Release.pc` → `lept.pc` for pkg-config discovery
+- When adding new portal features, add the corresponding `--talk-name` to `finish-args`
+
+## CI
+
+- **ci.yml**: Build + clippy on push/PR (Ubuntu)
+- **release.yml**: On `v*` tags, builds three artifacts: standalone binary (.tar.gz), Flatpak bundle (.flatpak via gnome-49 container), and AppImage (via linuxdeploy + GTK4 plugin on Arch container). Changelog section for the tag version is extracted into release notes.

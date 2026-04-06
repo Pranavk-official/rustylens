@@ -1,10 +1,11 @@
 {
-    "id": "com.example.RustyLens",
+    "id": "io.github.pranavk_official.RustyLens",
     "runtime": "org.gnome.Platform",
-    "runtime-version": "46",
+    "runtime-version": "49",
     "sdk": "org.gnome.Sdk",
     "sdk-extensions": [
-        "org.freedesktop.Sdk.Extension.rust-stable"
+        "org.freedesktop.Sdk.Extension.rust-stable",
+        "org.freedesktop.Sdk.Extension.llvm20"
     ],
     "command": "rustylens",
     "finish-args": [
@@ -17,20 +18,27 @@
         "--talk-name=org.freedesktop.portal.Screenshot"
     ],
     "build-options": {
-        "append-path": "/usr/lib/sdk/rust-stable/bin",
+        "append-path": "/usr/lib/sdk/rust-stable/bin:/usr/lib/sdk/llvm20/bin",
+        "prepend-ld-library-path": "/usr/lib/sdk/llvm20/lib",
         "env": {
             "CARGO_HOME": "/run/build/rustylens/cargo",
-            "RUST_BACKTRACE": "1"
+            "RUST_BACKTRACE": "1",
+            "PKG_CONFIG_PATH": "/app/lib/pkgconfig",
+            "LIBCLANG_PATH": "/usr/lib/sdk/llvm20/lib"
         }
     },
     "modules": [
         {
             "name": "leptonica",
             "buildsystem": "cmake-ninja",
+            "builddir": true,
             "config-opts": [
                 "-DCMAKE_BUILD_TYPE=Release",
                 "-DBUILD_PROG=OFF",
                 "-DBUILD_SHARED_LIBS=ON"
+            ],
+            "post-install": [
+                "cp /app/lib/pkgconfig/lept_Release.pc /app/lib/pkgconfig/lept.pc"
             ],
             "sources": [
                 {
@@ -43,16 +51,19 @@
         {
             "name": "tesseract",
             "buildsystem": "cmake-ninja",
+            "builddir": true,
             "config-opts": [
                 "-DCMAKE_BUILD_TYPE=Release",
                 "-DBUILD_TRAINING_TOOLS=OFF",
-                "-DBUILD_SHARED_LIBS=ON"
+                "-DBUILD_SHARED_LIBS=ON",
+                "-DLeptonica_DIR=/app/lib/cmake/leptonica"
             ],
             "sources": [
                 {
                     "type": "git",
                     "url": "https://github.com/tesseract-ocr/tesseract.git",
-                    "tag": "5.5.0"
+                    "tag": "5.4.1",
+                    "disable-submodules": true
                 }
             ]
         },
@@ -75,13 +86,16 @@
             "buildsystem": "simple",
             "build-options": {
                 "env": {
-                    "TESSDATA_PREFIX": "/app/share/tessdata"
+                    "TESSDATA_PREFIX": "/app/share/tessdata",
+                    "LIBRARY_PATH": "/app/lib"
                 }
             },
             "build-commands": [
-                "cargo --offline fetch --manifest-path Cargo.toml --verbose",
-                "cargo --offline build --release --verbose",
-                "install -Dm755 target/release/rustylens /app/bin/rustylens"
+                "cargo build --release --offline",
+                "install -Dm755 target/release/rustylens /app/bin/rustylens",
+                "install -Dm644 data/io.github.pranavk_official.RustyLens.desktop /app/share/applications/io.github.pranavk_official.RustyLens.desktop",
+                "install -Dm644 data/io.github.pranavk_official.RustyLens.metainfo.xml /app/share/metainfo/io.github.pranavk_official.RustyLens.metainfo.xml",
+                "install -Dm644 data/icons/hicolor/scalable/apps/io.github.pranavk_official.RustyLens.svg /app/share/icons/hicolor/scalable/apps/io.github.pranavk_official.RustyLens.svg"
             ],
             "sources": [
                 {
