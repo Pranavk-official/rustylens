@@ -12,7 +12,8 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
+  binary:
+    name: Build binary
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -26,6 +27,15 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-release-${{ hashFiles('**/Cargo.lock') }}
+
       - name: Build release binary
         run: cargo build --release
 
@@ -33,11 +43,68 @@ jobs:
         run: |
           cd target/release
           tar czf ../../rustylens-linux-x86_64.tar.gz rustylens
-          cd ../..
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: binary
+          path: rustylens-linux-x86_64.tar.gz
+
+  flatpak:
+    name: Build Flatpak
+    runs-on: ubuntu-latest
+    container:
+      image: bilelmoussaoui/flatpak-github-actions:gnome-46
+      options: --privileged
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Flatpak bundle
+        uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          manifest-path: com.example.RustyLens.json
+          bundle: rustylens.flatpak
+          cache-key: flatpak-builder-${{ github.sha }}
+
+      - name: Upload Flatpak artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: flatpak
+          path: rustylens.flatpak
+
+  release:
+    name: Publish release
+    needs: [binary, flatpak]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract changelog for this version
+        id: changelog
+        run: |
+          TAG="${GITHUB_REF#refs/tags/v}"
+          # Extract the section for this version from CHANGELOG.md
+          BODY=$(awk "/^## \[${TAG}\]/{found=1; next} /^## \[/{found=0} found" CHANGELOG.md)
+          if [ -z "$BODY" ]; then
+            BODY="Release ${TAG}"
+          fi
+          # Write to file to preserve newlines
+          echo "$BODY" > release_body.md
+
+      - name: Download binary artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: binary
+
+      - name: Download Flatpak artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: flatpak
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          generate_release_notes: true
+          body_path: release_body.md
           files: |
             rustylens-linux-x86_64.tar.gz
+            rustylens.flatpak

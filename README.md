@@ -64,10 +64,30 @@ sudo dnf install clang leptonica-devel tesseract-devel
 sudo dnf install tesseract-langpack-eng
 ```
 
+### Pre-built releases
+
+Download from [GitHub Releases](https://github.com/Pranavk-official/rustylens/releases):
+
+- **`rustylens-linux-x86_64.tar.gz`** — standalone binary (requires system GTK4, libadwaita, and Tesseract)
+- **`rustylens.flatpak`** — self-contained Flatpak bundle with all 128 language packs included
+
+To install the Flatpak bundle:
+
+```bash
+flatpak install --user rustylens.flatpak
+```
+
+To install the standalone binary:
+
+```bash
+tar xzf rustylens-linux-x86_64.tar.gz
+sudo install -Dm755 rustylens /usr/local/bin/rustylens
+```
+
 ### Build from source
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/rustylens.git
+git clone https://github.com/Pranavk-official/rustylens.git
 cd rustylens
 cargo build --release
 ```
@@ -80,7 +100,7 @@ The binary is at `target/release/rustylens` (~2 MB).
 cargo install --path .
 ```
 
-### Flatpak
+### Build Flatpak locally
 
 ```bash
 # Install the GNOME SDK (one-time setup):

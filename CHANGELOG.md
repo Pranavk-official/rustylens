@@ -22,5 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Toast notifications for clipboard actions and errors
 - Percent-decoding for portal file URIs (handles spaces and special characters)
 - Flatpak manifest with bundled leptonica, tesseract, and all tessdata_fast language packs
-- CI workflow (build + clippy) and release workflow (tagged binary builds)
+- CI workflow (build + clippy on push/PR)
+- Release workflow: auto-publishes binary + Flatpak bundle on version tags
+- Changelog extracted into release notes automatically
 - Optimized release profile (strip, LTO, opt-level=s) — ~1.9 MB binary
