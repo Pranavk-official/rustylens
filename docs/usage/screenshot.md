@@ -1,5 +1,7 @@
 # Screenshot Mode
 
+![RustyLens screenshot mode — XDG portal capture](../assets/screenshots/screenshot-mode.png)
+
 RustyLens can capture a region of the screen and immediately run OCR on it — no file needed.
 
 ## Usage

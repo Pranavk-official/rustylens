@@ -1,5 +1,7 @@
 # GUI Mode
 
+![RustyLens main window — bounding-box OCR overlay](../assets/screenshots/main-window.png)
+
 ## Opening an image
 
 ```bash

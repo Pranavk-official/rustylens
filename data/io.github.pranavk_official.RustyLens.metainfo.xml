@@ -40,6 +40,17 @@
     <binary>rustylens</binary>
   </provides>
 
+  <screenshots>
+    <screenshot type="default">
+      <image>https://raw.githubusercontent.com/Pranavk-official/rustylens/main/data/screenshots/main-window.png</image>
+      <caption>Image preview with OCR word-selection overlay</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/Pranavk-official/rustylens/main/data/screenshots/screenshot-mode.png</image>
+      <caption>Screenshot capture mode with extracted text</caption>
+    </screenshot>
+  </screenshots>
+
   <branding>
     <color type="primary" scheme_preference="light">#62a0ea</color>
     <color type="primary" scheme_preference="dark">#1a5fb4</color>
@@ -47,20 +58,73 @@
 
   <content_rating type="oars-1.1" />
 
+  <recommends>
+    <control>keyboard</control>
+    <control>pointing</control>
+  </recommends>
+
+  <requires>
+    <display_length compare="ge">768</display_length>
+  </requires>
+
   <releases>
+    <release version="0.2.1" date="2026-04-07">
+      <url type="details">https://pranavk-official.github.io/rustylens/changelog/#021---2026-04-07</url>
+      <description>
+        <p>Fix macOS CI clippy warning: collapse nested if-let in file chooser callback.</p>
+      </description>
+    </release>
+    <release version="0.2.0" date="2026-04-07">
+      <url type="details">https://pranavk-official.github.io/rustylens/changelog/#020---2026-04-07</url>
+      <description>
+        <p>Distro-native binaries, improved installer, and human-readable language names.</p>
+        <ul>
+          <li>install.sh now auto-detects the distro and downloads the matching native binary tarball</li>
+          <li>Release workflow produces separate builds for Ubuntu, Arch, and Fedora</li>
+          <li>install.sh gains --update, --appimage, and --local flags</li>
+          <li>OCR language dropdown now shows human-readable names (English, Japanese, etc.)</li>
+          <li>File chooser migrated from ashpd portal to native gtk::FileDialog</li>
+          <li>MkDocs documentation site published to GitHub Pages</li>
+        </ul>
+      </description>
+    </release>
+    <release version="0.1.9" date="2026-04-07">
+      <description>
+        <p>CI fixes for Ubuntu 24.04, clippy, macOS, and Windows build targets.</p>
+      </description>
+    </release>
+    <release version="0.1.8" date="2026-04-07">
+      <description>
+        <p>Add macOS and Windows support with native file dialogs via rfd.</p>
+        <ul>
+          <li>macOS file chooser uses native NSOpenPanel; screenshot uses screencapture -i</li>
+          <li>Windows file chooser uses native IFileDialog</li>
+          <li>CI and release workflow extended to macOS and Windows</li>
+        </ul>
+      </description>
+    </release>
+    <release version="0.1.7" date="2026-04-07">
+      <description>
+        <p>Add cross-distro install script, AppImage builder, and Makefile.</p>
+        <ul>
+          <li>install.sh supports Arch, Debian/Ubuntu, Fedora, openSUSE, Alpine, Void Linux</li>
+          <li>build-appimage.sh automates AppImage creation with linuxdeploy</li>
+          <li>Makefile adds common developer tasks</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.1.6" date="2026-04-07">
       <description>
         <p>Flatpak CI fix and code quality improvements.</p>
         <ul>
           <li>Vendor Rust dependencies before flatpak-builder to fix offline Flatpak builds</li>
           <li>Refactor let-chain patterns to Rust 2024 syntax in portal and UI code</li>
-          <li>Add *.logs.txt to .gitignore</li>
         </ul>
       </description>
     </release>
     <release version="0.1.5" date="2026-04-06">
       <description>
-        <p>Fix Flatpak and AppImage CI builds (remove --offline flag and redundant rename step).</p>
+        <p>Fix Flatpak and AppImage CI builds.</p>
       </description>
     </release>
     <release version="0.1.4" date="2026-04-06">

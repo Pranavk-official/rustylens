@@ -13,6 +13,12 @@ Built with Rust, GTK4, and libadwaita.
 [![Built with Rust](https://img.shields.io/badge/built%20with-Rust-orange?logo=rust)](https://www.rust-lang.org)
 [![GTK4](https://img.shields.io/badge/GTK-4-blueviolet?logo=gnome)](https://gtk.org)
 
+## Screenshots
+
+![RustyLens main window — bounding-box OCR overlay](data/screenshots/main-window.png)
+
+![RustyLens screenshot mode — XDG portal capture](data/screenshots/screenshot-mode.png)
+
 ## Demo
 
 <video controls src="demo/demo.mp4" title="Demo"></video>

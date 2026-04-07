@@ -81,4 +81,31 @@ Both helpers send results back via `std::sync::mpsc`, polled with `glib::timeout
 
 Manifest: `io.github.pranavk_official.RustyLens.json` (GNOME Platform 49, Rust + LLVM20 SDK extensions). Bundles leptonica, tesseract, and tessdata_fast. No `--share=network`.
 
-When adding portal features, add the corresponding `--talk-name` to `finish-args`. See [CLAUDE.md](../CLAUDE.md) for Flatpak build details and bindgen/pkg-config notes.
+When adding portal features, do **not** add explicit `--talk-name=org.freedesktop.portal.*` to `finish-args` — Flathub forbids this. Portals work automatically via `--socket=wayland`/`--device=dri`. See [CLAUDE.md](../CLAUDE.md) for Flatpak build details and bindgen/pkg-config notes.
+
+## Release Checklist
+
+### Patch / Minor Release
+- [ ] Bump version in `Cargo.toml`
+- [ ] Update `CHANGELOG.md` and `docs/changelog.md` with new entry
+- [ ] Update version references in `docs/index.md`
+- [ ] Update `data/io.github.pranavk_official.RustyLens.metainfo.xml` — add `<release>` entry
+- [ ] Commit, tag (`git tag v0.x.y`), push tag → triggers CI release workflow
+
+### Flathub Submission (first time)
+- [ ] Screenshots committed and pushed to `main` (`data/screenshots/*.png`)
+- [ ] Run lint: `flatpak run --command=flatpak-builder-lint org.flatpak.Builder manifest io.github.pranavk_official.RustyLens.json`
+- [ ] Run lint: `flatpak run --command=flatpak-builder-lint org.flatpak.Builder appstream data/io.github.pranavk_official.RustyLens.metainfo.xml`
+- [ ] Fork https://github.com/flathub/flathub
+- [ ] Create branch `new-pr/io.github.pranavk_official.RustyLens`
+- [ ] Add `io.github.pranavk_official.RustyLens.json` + `cargo-sources.json` to the branch
+- [ ] Submit PR to `flathub/flathub`
+
+### Flathub Update (subsequent releases)
+- [ ] Bump version in `Cargo.toml` and tag the release (`git tag v0.x.y && git push --tags`)
+- [ ] Update `tag` + `commit` SHA in manifest (`rustylens` module source) to the new tag
+- [ ] Regenerate `cargo-sources.json` if `Cargo.lock` changed: `uvx flatpak-cargo-generator ./Cargo.lock -o cargo-sources.json`
+- [ ] Add `<release>` entry to `data/io.github.pranavk_official.RustyLens.metainfo.xml`
+- [ ] Run lint: `flatpak run --command=flatpak-builder-lint org.flatpak.Builder manifest io.github.pranavk_official.RustyLens.json`
+- [ ] Run lint: `flatpak run --command=flatpak-builder-lint org.flatpak.Builder appstream data/io.github.pranavk_official.RustyLens.metainfo.xml`
+- [ ] PR to your Flathub fork's `master` branch

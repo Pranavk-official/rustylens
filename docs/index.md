@@ -13,6 +13,12 @@ Built with Rust, GTK4, and libadwaita.
 
 ---
 
+## Screenshots
+
+![RustyLens main window — bounding-box OCR overlay](assets/screenshots/main-window.png)
+
+![RustyLens screenshot mode — XDG portal capture](assets/screenshots/screenshot-mode.png)
+
 ## Demo
 
 <video controls width="100%" style="border-radius:6px;max-height:480px;">
