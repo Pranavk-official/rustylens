@@ -115,47 +115,6 @@ pub async fn request_screenshot() -> Result<String, String> {
     Err("Screenshot capture is not supported on Windows".to_owned())
 }
 
-/// Open a file chooser via the XDG FileChooser Portal (Linux).
-#[cfg(target_os = "linux")]
-pub async fn pick_file() -> Result<Option<String>, String> {
-    use ashpd::desktop::file_chooser::OpenFileRequest;
-
-    let response = OpenFileRequest::default()
-        .title("Select an Image")
-        .modal(true)
-        .send()
-        .await
-        .map_err(|e| e.to_string())?
-        .response()
-        .map_err(|e| e.to_string())?;
-
-    let uris = response.uris();
-    if uris.is_empty() {
-        return Ok(None);
-    }
-
-    Ok(Some(uris[0].to_string()))
-}
-
-/// Open a native file chooser dialog (macOS / Windows).
-/// Returns `None` if the user cancelled.
-#[cfg(not(target_os = "linux"))]
-pub async fn pick_file() -> Result<Option<String>, String> {
-    let path = tokio::task::spawn_blocking(|| {
-        rfd::FileDialog::new()
-            .add_filter(
-                "Images",
-                &["png", "jpg", "jpeg", "bmp", "tiff", "tif", "webp", "gif"],
-            )
-            .pick_file()
-    })
-    .await
-    .map_err(|e| e.to_string())?;
-
-    // Return the raw path string; uri_to_path handles both file:// URIs and plain paths.
-    Ok(path.map(|p| p.to_string_lossy().into_owned()))
-}
-
 /// Convert a `file://` URI to a filesystem path, decoding percent-encoded
 /// characters (e.g. `%20` → space).
 pub fn uri_to_path(uri: &str) -> String {

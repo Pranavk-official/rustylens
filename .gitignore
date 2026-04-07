@@ -39,6 +39,15 @@ ehthumbs.db
 *.logs.txt
 nohup.out
 
+# MkDocs / documentation
+site/
+
+# Python (docs-site)
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
 # AI / LLM tooling (machine-local)
 skills-lock.json
 .claude/

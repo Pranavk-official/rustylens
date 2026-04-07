@@ -12,109 +12,136 @@ Built with Rust, GTK4, and libadwaita.
 [![Built with Rust](https://img.shields.io/badge/built%20with-Rust-orange?logo=rust)](https://www.rust-lang.org)
 [![GTK4](https://img.shields.io/badge/GTK-4-blueviolet?logo=gnome)](https://gtk.org)
 
+## Demo
+
+<video controls src="demo/demo.mp4" title="Demo"></video>
+
+> If the video does not play in your browser, [download it here](demo/demo.mp4).
+
 ## Features
 
-- **OCR text extraction** with support for 100+ languages (auto-detects all installed Tesseract language packs)
+- **OCR text extraction** — supports 100+ languages; auto-detects all installed Tesseract language packs
 - **Drag-to-select** — click or drag across highlighted words to select them, then Ctrl+C to copy
 - **Bounding-box overlay** — recognised words are highlighted on the image preview
 - **Screenshot mode** — `rustylens --capture` grabs a screenshot via the XDG portal and runs OCR immediately
-- **Language selector** — dropdown to pick a specific language or use all installed languages at once
+- **Language selector** — dropdown showing human-readable names ("English", "Japanese", "Chinese (Simplified)"); "Auto (all)" uses every installed pack
 - **Copy all text** — one-click button to copy the full extracted text
-- **Flatpak-ready** — sandboxed with portal-based file chooser and screenshot integration
+- **Flatpak-ready** — fully sandboxed with portal-based screenshot integration
+
+## Quick Start
+
+Clone the repository and run the installer. It auto-detects your distro and downloads the correct native binary and English language pack:
+
+```bash
+git clone https://github.com/Pranavk-official/rustylens.git
+cd rustylens
+./install.sh --minimal
+```
+
+Then launch:
+
+```bash
+rustylens
+```
+
+For other install formats (AppImage, Flatpak, manual), see [Installation](#installation).
 
 ## Installation
 
-### Prerequisites
+### With `install.sh` (recommended for Linux)
 
-**Runtime dependencies:**
+`install.sh` auto-detects your distro (Arch, Ubuntu/Debian, Fedora/RHEL), downloads the matching native binary from GitHub Releases, and sets up Tesseract language packs. On unknown distros (Alpine, Void, openSUSE), it falls back to the AppImage automatically.
 
-| Platform | Required |
-|----------|----------|
-| **Linux** | GTK4, libadwaita, Tesseract, leptonica (see distro sections below) |
-| **macOS** | `brew install gtk4 libadwaita leptonica tesseract` |
-| **Windows** | Bundled in the release `.zip` (MSYS2/MINGW64 DLLs included) |
-
-**Build dependencies (in addition to the above):**
-
-- Rust 1.70+ (install via [rustup](https://rustup.rs))
-- clang (for C bindings)
-- Leptonica and Tesseract development headers
-
-### Arch Linux
+**Choose your language packs:**
 
 ```bash
-sudo pacman -S clang leptonica tesseract
-
-# Install language packs (at least one required):
-sudo pacman -S tesseract-data-eng               # English
-sudo pacman -S tesseract-data-jpn               # Japanese
-sudo pacman -S tesseract-data                   # All languages
+./install.sh --minimal                    # English only (default)
+./install.sh --european                   # Western + Eastern European
+./install.sh --asian                      # East Asian (CJK, Korean, Vietnamese)
+./install.sh --full                       # All language groups
+./install.sh --langs "eng fra jpn"        # Custom selection
+./install.sh --no-langs                   # Skip language packs entirely
 ```
 
-### Debian / Ubuntu
+**Choose your install format:**
 
 ```bash
-sudo apt install clang libleptonica-dev libtesseract-dev
-
-# Install language packs (at least one required):
-sudo apt install tesseract-ocr-eng              # English
-sudo apt install tesseract-ocr-jpn              # Japanese
-sudo apt install tesseract-ocr-all              # All languages
+./install.sh --minimal                    # Auto-detect distro; download native binary
+./install.sh -A --minimal                 # Force AppImage (bundled libs, any distro)
+./install.sh -F                           # Flatpak (fully sandboxed, 128 language packs)
+./install.sh --local ./RustyLens-x86_64.AppImage  # Install from a local file
 ```
 
-### Fedora
+Installs to `~/.local/bin/rustylens` by default. Override with `--prefix /usr/local`.
+
+**Update and uninstall:**
 
 ```bash
-sudo dnf install clang leptonica-devel tesseract-devel
-
-# Install language packs:
-sudo dnf install tesseract-langpack-eng
+./install.sh --update                     # Re-download latest release in the same format
+./install.sh --uninstall                  # Remove binary, desktop entry, and icon
 ```
 
-### Pre-built releases
+**Non-interactive / CI:**
+
+```bash
+NONINTERACTIVE=1 ./install.sh --minimal
+```
+
+### Pre-built releases (manual)
 
 Download from [GitHub Releases](https://github.com/Pranavk-official/rustylens/releases):
 
 | File | Description |
 |------|-------------|
-| `rustylens-linux-x86_64.tar.gz` | Standalone binary (requires system GTK4, libadwaita, Tesseract) |
-| `rustylens.flatpak` | Self-contained Flatpak bundle with all 128 language packs |
-| `RustyLens-x86_64.AppImage` | Portable AppImage with GTK4 and all libraries bundled |
+| `rustylens-linux-x86_64-arch.tar.gz` | Native binary for Arch / Garuda / Manjaro (leptonica 1.84+) |
+| `rustylens-linux-x86_64-ubuntu.tar.gz` | Native binary for Debian / Ubuntu / Mint / Pop |
+| `rustylens-linux-x86_64-fedora.tar.gz` | Native binary for Fedora / RHEL / Rocky / Alma / Nobara |
+| `rustylens-linux-x86_64.tar.gz` | Generic binary (same as ubuntu build, backward compat) |
+| `rustylens.flatpak` | Self-contained Flatpak bundle — all 128 language packs included |
+| `RustyLens-x86_64.AppImage` | Portable AppImage — GTK4 and all libraries bundled |
 | `RustyLens-*-apple-darwin.dmg` | macOS DMG with bundled dylibs (requires Tesseract tessdata) |
 | `rustylens-windows-x86_64.zip` | Windows zip with bundled DLLs and English tessdata |
 
-#### AppImage — one-command install with `install.sh`
+> **Choosing a Linux binary:** native tarballs link against your distro's leptonica version,
+> avoiding ABI mismatches (e.g. `liblept.so` version conflicts). The AppImage and Flatpak bundle
+> all libraries, so no system OCR libraries are needed.
 
-The bundled `install.sh` handles installation on any distro and manages Tesseract language packs automatically:
+#### Native binary
+
+Install the runtime libraries for your distro, then extract the binary:
+
+**Arch Linux:**
 
 ```bash
-# English only (default)
-./install.sh --minimal
-
-# Western + Eastern European
-./install.sh --european
-
-# East Asian (CJK, Korean, Vietnamese)
-./install.sh --asian
-
-# All language groups
-./install.sh --full
-
-# Custom selection
-./install.sh --langs "eng fra jpn"
-
-# AppImage only — manage languages yourself
-./install.sh --no-langs
-
-# Non-interactive / CI
-NONINTERACTIVE=1 ./install.sh --minimal
+sudo pacman -S leptonica tesseract
+sudo pacman -S tesseract-data-eng               # English (or other language packs)
+tar xzf rustylens-linux-x86_64-arch.tar.gz
+install -Dm755 rustylens ~/.local/bin/rustylens
 ```
 
-Installs to `~/.local/bin/rustylens` by default. Change with `--prefix /usr/local`.
+**Debian / Ubuntu:**
 
 ```bash
-# Uninstall
-./install.sh --uninstall
+sudo apt install libleptonica-dev libtesseract-dev tesseract-ocr-eng
+tar xzf rustylens-linux-x86_64-ubuntu.tar.gz
+install -Dm755 rustylens ~/.local/bin/rustylens
+```
+
+**Fedora:**
+
+```bash
+sudo dnf install leptonica tesseract tesseract-langpack-eng
+tar xzf rustylens-linux-x86_64-fedora.tar.gz
+install -Dm755 rustylens ~/.local/bin/rustylens
+```
+
+To register the app in your desktop launcher, also install the `.desktop` entry and icon from the cloned repo:
+
+```bash
+install -Dm644 data/io.github.pranavk_official.RustyLens.desktop \
+  ~/.local/share/applications/io.github.pranavk_official.RustyLens.desktop
+install -Dm644 data/icons/hicolor/scalable/apps/io.github.pranavk_official.RustyLens.svg \
+  ~/.local/share/icons/hicolor/scalable/apps/io.github.pranavk_official.RustyLens.svg
 ```
 
 #### Flatpak bundle
@@ -123,18 +150,34 @@ Installs to `~/.local/bin/rustylens` by default. Change with `--prefix /usr/loca
 flatpak install --user rustylens.flatpak
 ```
 
-#### Standalone binary
+#### AppImage
 
 ```bash
-tar xzf rustylens-linux-x86_64.tar.gz
-sudo install -Dm755 rustylens /usr/local/bin/rustylens
-sudo install -Dm644 data/io.github.pranavk_official.RustyLens.desktop \
-  /usr/share/applications/io.github.pranavk_official.RustyLens.desktop
-sudo install -Dm644 data/icons/hicolor/scalable/apps/io.github.pranavk_official.RustyLens.svg \
-  /usr/share/icons/hicolor/scalable/apps/io.github.pranavk_official.RustyLens.svg
+chmod +x RustyLens-x86_64.AppImage
+./RustyLens-x86_64.AppImage
 ```
 
-### Build from source
+Or copy it to your `PATH` for system-wide access:
+
+```bash
+install -Dm755 RustyLens-x86_64.AppImage ~/.local/bin/rustylens
+```
+
+### Building from source
+
+> **For developers and contributors.** End users should use `install.sh` or a pre-built release.
+
+**System dependencies:**
+
+| Distro | Command |
+|--------|---------|
+| **Arch** | `sudo pacman -S clang gtk4 libadwaita leptonica tesseract` |
+| **Debian/Ubuntu** | `sudo apt install clang libgtk-4-dev libadwaita-1-dev libleptonica-dev libtesseract-dev` |
+| **Fedora** | `sudo dnf install clang gtk4-devel libadwaita-devel leptonica-devel tesseract-devel` |
+| **macOS** | `brew install gtk4 libadwaita leptonica tesseract` |
+| **Windows** | Install MSYS2/MINGW64; `pacman -S mingw-w64-x86_64-{gtk4,libadwaita,leptonica,tesseract}` |
+
+Also install [Rust 1.85+](https://rustup.rs) (required for the 2024 edition).
 
 ```bash
 git clone https://github.com/Pranavk-official/rustylens.git
@@ -144,59 +187,42 @@ cargo build --release
 
 The binary is at `target/release/rustylens` (~2 MB).
 
-### Build a local AppImage with `build-appimage.sh`
-
-Produces a portable `RustyLens-x86_64.AppImage` (~50 MB) without needing Flatpak.
-
-#### System dependencies
-
-| Distro | Command |
-|--------|--------|
-| **Arch** | `sudo pacman -S gtk4 libadwaita leptonica tesseract squashfs-tools pkg-config` |
-| **Debian/Ubuntu** | `sudo apt install libgtk-4-dev libadwaita-1-dev libleptonica-dev libtesseract-dev squashfs-tools pkg-config clang` |
-| **Fedora** | `sudo dnf install gtk4-devel libadwaita-devel leptonica-devel tesseract-devel squashfs-tools pkg-config clang` |
-| **openSUSE** | `sudo zypper install gtk4-devel libadwaita-devel leptonica-devel tesseract-devel squashfs-tools pkg-config clang` |
-| **Alpine** | `sudo apk add gtk4.0-dev libadwaita-dev leptonica-dev tesseract-ocr-dev squashfs-tools pkgconfig clang` |
-
-`linuxdeploy` is downloaded automatically if not already present in the project root.
-
-```bash
-# Full build (cargo + AppImage):
-./build-appimage.sh
-
-# Skip cargo (reuse existing binary):
-./build-appimage.sh --skip-build
-
-# Build and install to ~/.local/bin/rustylens:
-./build-appimage.sh --install
-
-# Clean previous build artefacts first:
-./build-appimage.sh --clean
-```
-
-Or with Make:
-
-```bash
-make appimage          # build AppImage
-make appimage-install  # build + install to ~/.local/bin
-```
-
-### Install locally
+#### Install from source
 
 ```bash
 cargo install --path .
 
-# Add desktop entry (so it appears in your app launcher):
+# Register the desktop entry and icon:
 install -Dm644 data/io.github.pranavk_official.RustyLens.desktop \
   ~/.local/share/applications/io.github.pranavk_official.RustyLens.desktop
 install -Dm644 data/icons/hicolor/scalable/apps/io.github.pranavk_official.RustyLens.svg \
   ~/.local/share/icons/hicolor/scalable/apps/io.github.pranavk_official.RustyLens.svg
 ```
 
-### Build Flatpak locally
+#### Build a local AppImage
+
+Produces a portable `RustyLens-x86_64.AppImage` (~50 MB) without needing Flatpak.
+
+Additional dependency: `squashfs-tools` (and `pkg-config` on some distros). `linuxdeploy` is downloaded automatically if not present.
 
 ```bash
-# Install the GNOME SDK (one-time setup):
+./build-appimage.sh                  # Full build (cargo + AppImage)
+./build-appimage.sh --skip-build     # Reuse existing binary
+./build-appimage.sh --install        # Build and install to ~/.local/bin/rustylens
+./build-appimage.sh --clean          # Clean build artefacts first
+```
+
+Or with Make:
+
+```bash
+make appimage          # Build AppImage
+make appimage-install  # Build + install to ~/.local/bin
+```
+
+#### Build the Flatpak locally
+
+```bash
+# One-time SDK setup:
 flatpak install flathub org.gnome.Platform//49 org.gnome.Sdk//49
 flatpak install flathub org.freedesktop.Sdk.Extension.rust-stable//25.08
 
@@ -208,25 +234,25 @@ flatpak-builder --user --install --force-clean build-dir io.github.pranavk_offic
 
 ```bash
 make build          # cargo build --release
-make run            # build + run GUI
-make appimage       # build AppImage
-make install        # install AppImage + desktop entry to ~/.local
-make install-langs  # install English Tesseract pack (edit LANGS= to change)
-make test-docker    # run full Docker test suite (install.sh + build-appimage.sh)
+make run            # Build + run GUI
+make appimage       # Build AppImage
+make install        # Install AppImage + desktop entry to ~/.local
+make install-langs  # Install English Tesseract pack (edit LANGS= to change)
+make test-docker    # Run full Docker test suite (install.sh + build-appimage.sh)
 make clean          # cargo clean + remove AppDir / AppImage artefacts
-make release        # build + tag a new release commit
+make release        # Build + tag a new release commit
 ```
 
 ### Uninstall
 
 ```bash
-# Via install.sh:
+# Via install.sh (recommended):
 ./install.sh --uninstall
 
-# Standalone binary:
-sudo rm /usr/local/bin/rustylens
-sudo rm /usr/share/applications/io.github.pranavk_official.RustyLens.desktop
-sudo rm /usr/share/icons/hicolor/scalable/apps/io.github.pranavk_official.RustyLens.svg
+# Standalone binary (installed manually):
+rm ~/.local/bin/rustylens
+rm ~/.local/share/applications/io.github.pranavk_official.RustyLens.desktop
+rm ~/.local/share/icons/hicolor/scalable/apps/io.github.pranavk_official.RustyLens.svg
 
 # cargo install:
 cargo uninstall rustylens
@@ -260,50 +286,16 @@ rustylens --capture
 
 Opens an interactive screenshot selection (via the XDG Desktop Portal), then loads the captured image for OCR.
 
-## Project Structure
-
-```
-.
-├── src/
-│   ├── main.rs               Entry point, CLI flag, application setup
-│   ├── ui.rs                 Window construction, word selection, drawing callbacks
-│   ├── portal.rs             XDG portal wrappers (file chooser, screenshot), background tasks
-│   └── ocr.rs                Tesseract OCR via leptess, language detection, TSV bbox parsing
-├── data/
-│   ├── icons/hicolor/scalable/apps/
-│   │   └── *.svg             App icon
-│   ├── *.desktop             Desktop entry
-│   └── *.metainfo.xml        AppStream metadata
-├── build-appimage.sh         Local AppImage builder (two-pass linuxdeploy + mksquashfs)
-├── install.sh                Cross-distro AppImage + tessdata installer
-├── local-scripts/            Local-only scripts (gitignored)
-│   ├── test-install.sh       Docker test harness for install.sh
-│   ├── test-build-appimage.sh Docker test harness for build-appimage.sh
-│   └── test-makefile.sh      Docker test harness for Makefile targets
-├── Makefile                  Developer task shortcuts
-├── Cargo.toml
-├── CHANGELOG.md
-└── io.github.pranavk_official.RustyLens.json  Flatpak manifest
-```
-
-## How It Works
-
-1. **Image loading** — the file chooser portal returns a `file://` URI, which is percent-decoded to a filesystem path and displayed in a `gtk::Picture` widget.
-2. **OCR** — runs on a background thread to avoid blocking the UI. Tesseract processes the image and returns both the full text and per-word bounding boxes (via TSV output).
-3. **Bounding boxes** — a transparent `gtk::DrawingArea` overlay renders word rectangles using Cairo, scaled to match the image's "Contain" fit.
-4. **Word selection** — a `GestureDrag` handler lets you click or drag across highlighted words to select a range. Ctrl+C copies selected words in reading order.
-5. **Portal integration** — XDG Desktop Portals (via ashpd/zbus) handle the file chooser and screenshot dialogs, running on a shared Tokio runtime for reliable D-Bus communication.
-
-## Adding OCR Languages
+## Managing OCR Languages
 
 RustyLens automatically detects all Tesseract language packs installed on your system by scanning the tessdata directory (typically `/usr/share/tessdata/`). To add a new language:
 
 1. Install the language pack for your distro (e.g., `sudo pacman -S tesseract-data-fra` for French).
-2. Restart RustyLens — the new language appears in the dropdown.
+2. Restart RustyLens — the new language appears in the dropdown with its full name (e.g. "French" rather than `fra`).
 
 The "Auto (all)" option uses all installed languages simultaneously. For best accuracy and speed, select the specific language you need.
 
-Tesseract language codes follow [ISO 639-3](https://tesseract-ocr.github.io/tessdoc/Data-Files-in-different-versions.html). Common examples:
+Some common language codes for `install.sh --langs` and `--capture` mode:
 
 | Code | Language |
 |------|----------|
@@ -317,6 +309,42 @@ Tesseract language codes follow [ISO 639-3](https://tesseract-ocr.github.io/tess
 | `spa` | Spanish |
 | `ara` | Arabic |
 | `hin` | Hindi |
+
+For the full list of codes, see the [Tesseract data files documentation](https://tesseract-ocr.github.io/tessdoc/Data-Files-in-different-versions.html).
+
+## How It Works
+
+1. **Image loading** — `gtk::FileDialog` opens the native file chooser (GTK4 transparently uses the XDG portal when running inside a Flatpak). The selected `GFile` path is passed directly to Tesseract.
+2. **OCR** — runs on a background thread to avoid blocking the UI. Tesseract processes the image and returns both the full text and per-word bounding boxes (via TSV output).
+3. **Bounding boxes** — a transparent `gtk::DrawingArea` overlay renders word rectangles using Cairo, scaled to match the image's "Contain" fit.
+4. **Word selection** — a `GestureDrag` handler lets you click or drag across highlighted words to select a range. Ctrl+C copies selected words in reading order.
+5. **Portal integration** — the XDG Screenshot Portal (via ashpd/zbus) handles the `--capture` screenshot mode, running on a shared persistent Tokio runtime for reliable D-Bus communication.
+
+## Project Structure
+
+```
+.
+├── src/
+│   ├── main.rs               Entry point, CLI flag, application setup
+│   ├── ui.rs                 Window construction, word selection, drawing callbacks
+│   ├── portal.rs             XDG Screenshot Portal wrapper, shared Tokio runtime, background tasks
+│   └── ocr.rs                Tesseract OCR via leptess, language detection, TSV bbox parsing
+├── data/
+│   ├── icons/hicolor/scalable/apps/
+│   │   └── *.svg             App icon
+│   ├── *.desktop             Desktop entry
+│   └── *.metainfo.xml        AppStream metadata
+├── build-appimage.sh         Local AppImage builder (two-pass linuxdeploy + mksquashfs)
+├── install.sh                Cross-distro installer: native binary, AppImage, Flatpak, and tessdata
+├── local-scripts/            Local-only scripts (not committed)
+│   ├── test-install.sh       Docker test harness for install.sh
+│   ├── test-build-appimage.sh  Docker test harness for build-appimage.sh
+│   └── test-makefile.sh      Docker test harness for Makefile targets
+├── Makefile                  Developer task shortcuts
+├── Cargo.toml
+├── CHANGELOG.md
+└── io.github.pranavk_official.RustyLens.json  Flatpak manifest
+```
 
 ## Contributing
 
@@ -333,4 +361,4 @@ There is no test suite yet. When adding tests, prefer integration tests in `test
 
 ## License
 
-[GPL-3.0-or-later](https://www.gnu.org/licenses/gpl-3.0.html)
+This project is licensed under the [GNU General Public License v3.0 or later](LICENSE).

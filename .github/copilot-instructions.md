@@ -1,8 +1,12 @@
 # RustyLens — Project Guidelines
 
+> For deep documentation, see [CLAUDE.md](../CLAUDE.md).
+
 ## Overview
 
-Lightweight Linux desktop app for image preview and OCR text extraction. Rust + GTK4 + libadwaita, packaged as a Flatpak. Single-binary, two modes: headless `--capture` (screenshot portal → OCR → display) and windowed GUI (file chooser → image preview + OCR).
+Lightweight Linux desktop app for image preview and OCR text extraction. Rust 2024 edition + GTK4 + libadwaita. Two modes: `--capture` (XDG portal screenshot → OCR) and windowed GUI (file chooser → image preview + drag-to-select OCR).
+
+**Application ID:** `io.github.pranavk_official.RustyLens`
 
 ## Build and Test
 
@@ -13,162 +17,68 @@ cargo build --release                # Release build
 ./target/debug/rustylens --capture   # Screenshot + OCR mode
 ```
 
-System build/runtime deps: `sudo apt install clang libleptonica-dev libtesseract-dev tesseract-ocr-eng`
+System deps (Debian/Ubuntu): `sudo apt install clang libleptonica-dev libtesseract-dev tesseract-ocr-eng`
+System deps (Arch): `sudo pacman -S clang leptonica tesseract tesseract-data-eng`
 
-No test suite exists yet. When adding tests, prefer integration tests in `tests/` for portal/UI logic and unit tests for pure functions (e.g., `parse_tsv_words`).
+No test suite yet. When adding tests: integration tests in `tests/` for portal/UI logic; unit tests for pure functions (e.g. `parse_tsv_words`).
 
 ## Architecture
 
-Currently a single-file app (`src/main.rs`). When splitting into modules, use this layout:
-
 | Module | Responsibility |
 |--------|---------------|
-| `cli.rs` | clap argument parsing |
-| `ui.rs` | Window construction, widget setup |
-| `portal.rs` | ashpd screenshot/file-chooser wrappers |
-| `ocr.rs` | leptess/Tesseract OCR wrappers |
-
-**Application ID:** `io.github.pranavk_official.RustyLens`
+| `src/main.rs` | Entry point, `--capture` flag, app setup |
+| `src/ui.rs` | `AppState`, window construction, word selection, draw callbacks |
+| `src/portal.rs` | Shared tokio runtime, `spawn_background`/`spawn_portal`, XDG portal wrappers, `uri_to_path` |
+| `src/ocr.rs` | `OcrResult`/`OcrWord` types, `ocr_file`, `installed_languages`, TSV parsing |
 
 ## Key Types
 
 ```rust
-struct OcrWord { x: i32, y: i32, w: i32, h: i32 }   // image-coordinate bbox
+struct OcrWord { x: i32, y: i32, w: i32, h: i32, text: String }  // image-coordinate bbox
 struct OcrResult { full_text: String, words: Vec<OcrWord>, img_w: u32, img_h: u32 }
 
 #[derive(Clone)]
 struct AppState {
-    picture: gtk::Picture,           // image preview
-    drawing_area: gtk::DrawingArea,  // transparent OCR overlay
-    text_buffer: gtk::TextBuffer,    // extracted text
+    picture: gtk::Picture,
+    drawing_area: gtk::DrawingArea,
+    text_buffer: gtk::TextBuffer,
     copy_btn: gtk::Button,
     toast_overlay: adw::ToastOverlay,
-    ocr_result: Rc<RefCell<Option<OcrResult>>>,  // shared, not Send
+    lang_dropdown: gtk::DropDown,
+    ocr_result: Rc<RefCell<Option<OcrResult>>>,
+    selected_words: Rc<RefCell<BTreeSet<usize>>>,
+    anchor_index: Rc<RefCell<Option<usize>>>,
 }
 ```
 
 ## Conventions
 
-### Async: GLib ↔ background thread
+### Async: GLib ↔ background threads
 
-GTK runs a GLib main loop. **Never block the GLib main loop.**
+**Never block the GLib main loop.** Always use the helpers in `portal.rs`:
 
-- **Portal calls** (ashpd): use `glib::MainContext::default().spawn_local(async { ... })`
-- **Blocking OCR** (leptess): spawn with `std::thread::spawn`, send results back via `glib::MainContext::channel()`. The `Receiver::attach` callback does **not** require `Send`, so `Rc<RefCell<T>>` can be captured safely.
+- **`spawn_portal(future_fn, callback)`** — runs an async closure on the shared persistent `tokio::runtime` (stored in `OnceLock`). Required for ashpd/zbus portal calls — zbus caches D-Bus connections, so creating a new runtime per call breaks subsequent requests.
+- **`spawn_background(work, callback)`** — runs a blocking closure on `std::thread`. Use for leptess OCR.
 
-No tokio runtime is needed — `reqwest` and `tokio` are not dependencies.
+Both helpers send results back via `std::sync::mpsc`, polled with `glib::timeout_add_local` at 16 ms. The `callback` closure is non-`Send` and runs on the main thread, so `Rc<RefCell<T>>` is safe to capture there.
 
-### OCR pipeline
-
-- `leptess::LepTess::new(None, "eng")` → init engine
-- `lt.set_image(path)` → load image (accepts `&str` or `&Path`)
-- `lt.set_source_resolution(70)` → suppress "Invalid resolution" warning
-- `lt.get_utf8_text()` → full extracted text (String)
-- `lt.get_tsv_text(0)` → TSV with word bboxes; parse with `parse_tsv_words()`
-- `lt.get_image_dimensions()` → `Option<(u32, u32)>` original pixel size
-- `LepTess: Send` — safe to move into `std::thread::spawn`
-
-TSV word format (level == 5, conf >= 0): `left top width height` in columns 6–9.
-
-### Overlay geometry (Contain fit)
-
-```rust
-let scale = (widget_w / img_w).min(widget_h / img_h);
-let off_x = (widget_w - img_w * scale) / 2.0;
-let off_y = (widget_h - img_h * scale) / 2.0;
-// per word: draw_x = off_x + word.x * scale, etc.
-```
+**Do not** use `glib::MainContext::spawn_local` or create new `tokio::Runtime` instances directly.
 
 ### Widget state in closures
 
-`AppState` is cheaply cloned (all fields are GObject refs or Rc). Pass `state.clone()` into closures. For cross-thread access use `glib::MainContext::channel` (not `Rc`). Use `widget.downgrade()` + `.upgrade()` only when necessary to break ownership cycles.
+`AppState` is cheaply cloned into closures (all fields are GObject refs or `Rc`). Use `widget.downgrade()` + `.upgrade()` only to break ownership cycles with the window.
 
 ### Error handling
 
-- Return `Box<dyn std::error::Error>` from async portal helpers
-- `ocr_file()` returns `Result<OcrResult, String>` — string errors are shown in the TextView
-- Log unexpected errors to stderr via `eprintln!()`
+- `ocr_file()` returns `Result<OcrResult, String>` — errors are shown in the `TextView`
+- Log unexpected errors to stderr via `eprintln!()`; no UI error dialogs
 
-### Portal URIs vs. file paths
+### Portal URIs vs file paths
 
-ashpd portals return `url::Url` values. Call `.to_string()` to get `file:///path/...`, then `uri_to_path()` (strips `file://`) to get the POSIX path.
-
-## Flatpak
-
-Manifest: `io.github.pranavk_official.RustyLens.json` (GNOME Platform 46, Rust SDK extension). No `--share=network` — the app is fully local.
-
-Required D-Bus permissions for portals:
-- `org.freedesktop.portal.Desktop`
-- `org.freedesktop.portal.Screenshot`
-- `org.freedesktop.portal.FileChooser`
-
-When adding new portal features, add the corresponding `--talk-name` to `finish-args`.
-
-## Incomplete Features
-
-- Per-word text selection by clicking a bounding box
-- Toast notifications for file-chooser errors
-
-## Build and Test
-
-```bash
-cargo build                          # Dev build
-cargo build --release                # Release build
-./target/debug/rustylens             # GUI mode
-./target/debug/rustylens --capture   # Headless screenshot mode
-```
-
-No test suite exists yet. When adding tests, prefer integration tests in `tests/` for portal/UI logic and unit tests for pure functions.
-
-## Architecture
-
-Currently a single-file app (`src/main.rs`). When splitting into modules, use this layout:
-
-| Module | Responsibility |
-|--------|---------------|
-| `cli.rs` | clap argument parsing |
-| `ui.rs` | Window construction, widget setup |
-| `portal.rs` | ashpd screenshot/file-chooser wrappers |
-| `upload.rs` | reqwest HTTP upload logic |
-
-**Application ID:** `io.github.pranavk_official.RustyLens`
-
-## Conventions
-
-### Async: GLib ↔ Tokio bridging
-
-This is the most critical pattern in the codebase. GTK runs a GLib main loop; Tokio has its own runtime. **Never block the GLib main loop.**
-
-- **Portal calls** (ashpd): use `gtk::glib::MainContext::default().spawn_local(async { ... })`
-- **Blocking network I/O** (reqwest/tokio): spawn a dedicated thread with `std::thread::spawn`, create a `tokio::runtime::Builder::new_current_thread()` inside, and send results back via `gtk::glib::MainContext::channel()`
-
-### Widget state in closures
-
-Use `widget.downgrade()` + `.upgrade()` to avoid prevent circular references. Mutable shared state uses `RefCell<T>` or `Rc<RefCell<T>>`.
-
-### Error handling
-
-- Return `Box<dyn std::error::Error>` from async helpers
-- Log to stderr via `eprintln!()` — no UI error dialogs yet
-- Portal/file functions return `Option` for user-cancellable operations
-
-### Portal URIs vs. file paths
-
-ashpd portals return `file://` URIs. Functions accepting file locations should document whether they expect a URI or a POSIX path. Use `.strip_prefix("file://")` when converting.
+`uri_to_path()` in `portal.rs` strips `file://` and percent-decodes (e.g. `%20` → space). Always use it when converting ashpd URIs to POSIX paths.
 
 ## Flatpak
 
-Manifest: `io.github.pranavk_official.RustyLens.json` (GNOME Platform 46, Rust SDK extension).
+Manifest: `io.github.pranavk_official.RustyLens.json` (GNOME Platform 49, Rust + LLVM20 SDK extensions). Bundles leptonica, tesseract, and tessdata_fast. No `--share=network`.
 
-Required D-Bus permissions for portals:
-- `org.freedesktop.portal.Desktop`
-- `org.freedesktop.portal.Screenshot`
-- `org.freedesktop.portal.FileChooser`
-
-When adding new portal features, add the corresponding `--talk-name` to `finish-args`.
-
-## Incomplete Features
-
-- `paste_image_from_clipboard()` — placeholder, returns `Ok(None)`
-- `do_upload()` — placeholder, no real endpoint configured
-- No toast notifications or UI error feedback
+When adding portal features, add the corresponding `--talk-name` to `finish-args`. See [CLAUDE.md](../CLAUDE.md) for Flatpak build details and bindgen/pkg-config notes.

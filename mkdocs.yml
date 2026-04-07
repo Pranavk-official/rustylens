@@ -1,0 +1,83 @@
+site_name: RustyLens
+site_description: Lightweight Linux desktop app for OCR text extraction — powered by Rust, GTK4, and Tesseract.
+site_url: https://pranavk-official.github.io/rustylens
+repo_url: https://github.com/Pranavk-official/rustylens
+repo_name: Pranavk-official/rustylens
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  logo: assets/logo.svg
+  favicon: assets/logo.svg
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - navigation.instant
+    - navigation.instant.progress
+    - content.code.copy
+    - content.code.annotate
+    - search.highlight
+    - search.suggest
+    - toc.follow
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets:
+      base_path: ["."]
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - footnotes
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+
+plugins:
+  - search
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Quick Install: getting-started.md
+  - Installation:
+      - Overview: installation/index.md
+      - install.sh: installation/install-script.md
+      - Pre-built Releases: installation/releases.md
+      - Build from Source: installation/build-from-source.md
+  - Usage:
+      - GUI Mode: usage/gui.md
+      - Screenshot Mode: usage/screenshot.md
+      - OCR Languages: usage/languages.md
+  - Reference:
+      - CLI Reference: reference/cli.md
+      - Architecture: reference/architecture.md
+      - Project Structure: reference/project-structure.md
+  - Contributing: contributing.md
+  - Changelog: changelog.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/Pranavk-official/rustylens

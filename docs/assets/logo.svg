@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Background circle -->
+  <circle cx="64" cy="64" r="60" fill="#1a5fb4"/>
+  <!-- Magnifying glass body -->
+  <circle cx="54" cy="52" r="26" fill="none" stroke="#ffffff" stroke-width="6"/>
+  <!-- Lens fill -->
+  <circle cx="54" cy="52" r="22" fill="#62a0ea" opacity="0.5"/>
+  <!-- Handle -->
+  <line x1="73" y1="71" x2="98" y2="96" stroke="#ffffff" stroke-width="8" stroke-linecap="round"/>
+  <!-- Text lines inside lens -->
+  <line x1="40" y1="44" x2="68" y2="44" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
+  <line x1="40" y1="52" x2="64" y2="52" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
+  <line x1="40" y1="60" x2="60" y2="60" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
+</svg>

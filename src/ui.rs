@@ -59,10 +59,21 @@ pub fn build_main_window(app: &adw::Application) -> (adw::ApplicationWindow, App
         .build();
 
     // Language selector
-    let mut lang_list: Vec<String> = vec!["Auto (all)".to_owned()];
-    lang_list.extend(ocr::installed_languages());
+    // lang_list holds the Tesseract codes (used for OCR calls).
+    // lang_display holds the human-readable names shown in the dropdown.
+    let codes = ocr::installed_languages();
+    let mut lang_list: Vec<String> = vec![String::new()]; // index 0 = "Auto (all)"
+    lang_list.extend(codes);
 
-    let lang_strings: Vec<&str> = lang_list.iter().map(|s| s.as_str()).collect();
+    let lang_display: Vec<String> = std::iter::once("Auto (all)".to_owned())
+        .chain(
+            lang_list[1..]
+                .iter()
+                .map(|code| ocr::lang_display_name(code).to_owned()),
+        )
+        .collect();
+
+    let lang_strings: Vec<&str> = lang_display.iter().map(|s| s.as_str()).collect();
     let lang_dropdown = gtk::DropDown::from_strings(&lang_strings);
     lang_dropdown.set_selected(0);
     lang_dropdown.set_tooltip_text(Some("OCR language"));
@@ -250,21 +261,22 @@ pub fn build_main_window(app: &adw::Application) -> (adw::ApplicationWindow, App
     // Open Image button
     {
         let state = state.clone();
+        let window_weak = window.downgrade();
         open_btn.connect_clicked(move |_| {
             let state = state.clone();
-            portal::spawn_portal(
-                || Box::pin(portal::pick_file()),
-                move |result| match result {
-                    Ok(Some(uri)) => {
-                        let path = portal::uri_to_path(&uri);
-                        load_image_path(&path, &state);
-                    }
-                    Ok(None) => {}
-                    Err(e) => {
-                        eprintln!("File chooser error: {e}");
-                        state
-                            .toast_overlay
-                            .add_toast(adw::Toast::new("Could not open file chooser"));
+            let win = window_weak.upgrade();
+            let dialog = gtk::FileDialog::builder()
+                .title("Select an Image")
+                .modal(true)
+                .build();
+            dialog.open(
+                win.as_ref(),
+                None::<&gtk::gio::Cancellable>,
+                move |result| {
+                    if let Ok(file) = result {
+                        if let Some(path) = file.path() {
+                            load_image_path(&path.to_string_lossy(), &state);
+                        }
                     }
                 },
             );

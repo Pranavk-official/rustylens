@@ -12,8 +12,8 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  binary:
-    name: Build binary
+  binary-ubuntu:
+    name: Build binary (Ubuntu)
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -35,7 +35,7 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: ${{ runner.os }}-release-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-ubuntu-release-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Build release binary
         run: cargo build --release
@@ -43,13 +43,94 @@ jobs:
       - name: Package binary
         run: |
           cd target/release
+          # Distro-specific name for new install.sh + generic name for backward compat
+          tar czf ../../rustylens-linux-x86_64-ubuntu.tar.gz rustylens
           tar czf ../../rustylens-linux-x86_64.tar.gz rustylens
 
       - name: Upload binary artifact
         uses: actions/upload-artifact@v4
         with:
-          name: binary
-          path: rustylens-linux-x86_64.tar.gz
+          name: binary-ubuntu
+          path: |
+            rustylens-linux-x86_64-ubuntu.tar.gz
+            rustylens-linux-x86_64.tar.gz
+
+  binary-arch:
+    name: Build binary (Arch Linux)
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          pacman -Syu --noconfirm base-devel clang \
+            gtk4 libadwaita leptonica tesseract
+          pacman -S --noconfirm rustup
+          rustup default stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: arch-release-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build release binary
+        run: cargo build --release
+
+      - name: Package binary
+        run: |
+          cd target/release
+          tar czf ../../rustylens-linux-x86_64-arch.tar.gz rustylens
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: binary-arch
+          path: rustylens-linux-x86_64-arch.tar.gz
+
+  binary-fedora:
+    name: Build binary (Fedora)
+    runs-on: ubuntu-latest
+    container:
+      image: fedora:latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          dnf install -y clang leptonica-devel tesseract-devel \
+            gtk4-devel libadwaita-devel pkgconf-pkg-config
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: fedora-release-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build release binary
+        run: cargo build --release
+
+      - name: Package binary
+        run: |
+          cd target/release
+          tar czf ../../rustylens-linux-x86_64-fedora.tar.gz rustylens
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: binary-fedora
+          path: rustylens-linux-x86_64-fedora.tar.gz
 
   flatpak:
     name: Build Flatpak
@@ -398,7 +479,7 @@ jobs:
 
   release:
     name: Publish release
-    needs: [binary, flatpak, appimage, macos, windows]
+    needs: [binary-ubuntu, binary-arch, binary-fedora, flatpak, appimage, macos, windows]
     if: always() && contains(needs.*.result, 'success')
     runs-on: ubuntu-latest
     steps:
@@ -414,11 +495,23 @@ jobs:
           fi
           echo "$BODY" > release_body.md
 
-      - name: Download binary artifact
-        if: needs.binary.result == 'success'
+      - name: Download Ubuntu binary artifact
+        if: needs.binary-ubuntu.result == 'success'
         uses: actions/download-artifact@v4
         with:
-          name: binary
+          name: binary-ubuntu
+
+      - name: Download Arch binary artifact
+        if: needs.binary-arch.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: binary-arch
+
+      - name: Download Fedora binary artifact
+        if: needs.binary-fedora.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: binary-fedora
 
       - name: Download Flatpak artifact
         if: needs.flatpak.result == 'success'
@@ -450,6 +543,9 @@ jobs:
           body_path: release_body.md
           files: |
             rustylens-linux-x86_64.tar.gz
+            rustylens-linux-x86_64-ubuntu.tar.gz
+            rustylens-linux-x86_64-arch.tar.gz
+            rustylens-linux-x86_64-fedora.tar.gz
             rustylens.flatpak
             RustyLens-*.AppImage
             RustyLens-*-apple-darwin.dmg

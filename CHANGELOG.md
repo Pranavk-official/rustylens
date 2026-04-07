@@ -7,6 +7,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-04-07
+
+### Added
+
+- `install.sh` now auto-detects the distro family (Arch/Garuda/Manjaro, Ubuntu/Debian,
+  Fedora/RHEL/Rocky, …) and downloads the matching distro-native binary tarball from
+  GitHub releases, eliminating shared-library ABI mismatches (e.g. `liblept.so.5` vs
+  `liblept.so.6` between Ubuntu and Arch). Falls back to the AppImage automatically on
+  unknown distros (Alpine, Void, openSUSE, etc.) or when no distro-specific asset exists.
+- Release workflow now produces three distro-native Linux binary tarballs:
+  - `rustylens-linux-x86_64-ubuntu.tar.gz` — built on ubuntu-24.04 (leptonica 1.82)
+  - `rustylens-linux-x86_64-arch.tar.gz`   — built in archlinux container (leptonica 1.84+)
+  - `rustylens-linux-x86_64-fedora.tar.gz` — built in fedora container
+  The generic `rustylens-linux-x86_64.tar.gz` (same as ubuntu build) is kept for
+  backward compatibility with older `install.sh` versions.
+- `install.sh --update`: fetch the latest release from GitHub and replace the
+  installed binary in-place; re-downloads the same format (binary or AppImage)
+  that was originally installed; optionally updates Tesseract language packs when
+  `--langs` flags are passed alongside `--update`.
+- `install.sh --appimage`: opt-in flag to install/update as an AppImage instead
+  of the default standalone binary tarball.
+- `install.sh --local PATH`: install from a local file (binary or AppImage) instead
+  of downloading from GitHub; usable with `--update` for offline upgrades.
+- OCR language dropdown now shows human-readable names (e.g. "English", "Japanese",
+  "Chinese (Simplified)") instead of raw Tesseract language codes (`eng`, `jpn`,
+  `chi_sim`). New `lang_display_name()` function in `ocr.rs` covers all ~100 standard
+  Tesseract language codes.
+- MkDocs Material documentation site (`docs/`) with full user-facing content:
+  getting-started guide, installation options (install script, releases, build from
+  source), usage guides (GUI, screenshot capture, language selection), CLI reference,
+  architecture and project-structure reference, and contributing guide.
+- `docs.yml` GitHub Actions workflow: builds and deploys the documentation site to
+  GitHub Pages on every push to `main` that touches `docs/**`, `mkdocs.yml`, or
+  `CHANGELOG.md`.
+
+### Changed
+
+- `install.sh` default behaviour changed: the script now auto-detects the distro and
+  downloads the appropriate native binary tarball from GitHub releases. Pass `--appimage`
+  to force AppImage install on any distro.
+- Install method is persisted as `binary-ubuntu`, `binary-arch`, `binary-fedora`, or
+  `appimage` to `$PREFIX/share/rustylens/.install_method` so that `--update` re-downloads
+  the correct distro tarball. Old stored value `"binary"` is treated as `binary-ubuntu`.
+- File chooser migrated from `ashpd` FileChooser portal (`portal::pick_file()`) to
+  GTK4's native `gtk::FileDialog` API; GTK4 transparently invokes the portal when
+  running inside a Flatpak sandbox, removing the manual async portal plumbing from
+  `portal.rs`.
+
+### Fixed
+
+- `liblept.so: cannot open shared object file` error on Arch Linux / Garuda / Manjaro
+  and other distros that ship a different leptonica ABI than the ubuntu build runner.
+  Each distro family now gets a binary linked against its own leptonica version.
+
 ## [0.1.9] - 2026-04-07
 
 ### Fixed
