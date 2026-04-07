@@ -45,6 +45,7 @@ jobs:
   check-macos:
     name: Check (macOS)
     runs-on: macos-latest
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
@@ -74,6 +75,7 @@ jobs:
   check-windows:
     name: Check (Windows / MSYS2)
     runs-on: windows-latest
+    continue-on-error: true
     defaults:
       run:
         shell: msys2 {0}

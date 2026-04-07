@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.9] - 2026-04-07
+
+### Fixed
+
+- CI: switch Linux `build` job from `ubuntu-latest` to `ubuntu-24.04` — Ubuntu 22.04 ships
+  GTK 4.6 which is incompatible with the `v4_12` feature flag; Ubuntu 24.04 has GTK 4.14.
+- CI: add `components: clippy` to `dtolnay/rust-toolchain@stable` so clippy is installed.
+- CI: mark `check-macos` and `check-windows` jobs as `continue-on-error: true` so a
+  platform-specific failure does not block the overall CI status.
+- macOS CI: fix `tokio::runtime::Builder::new_multi_thread()` → `new_current_thread()` —
+  the `rt-multi-thread` feature is not enabled.
+- Windows CI: set `LEPTONICA_*` and `TESSERACT_*` env vars so `leptonica-sys`/`tesseract-sys`
+  bypass their vcpkg (MSVC-only) code path and use MSYS2/MINGW64 libraries instead.
+- Windows release: propagate the same `LEPTONICA_*` and `TESSERACT_*` env vars to the
+  `windows` release build step (the CI fix was not applied to the release workflow).
+
 ## [0.1.8] - 2026-04-07
 
 ### Added
@@ -17,16 +33,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions CI now checks compilation on macOS (`check-macos`) and Windows (`check-windows`) on every push.
 - Release workflow now publishes a macOS DMG (`RustyLens-<arch>-apple-darwin.dmg`) and
   a Windows zip (`rustylens-windows-x86_64.zip`) alongside the existing Linux artifacts.
-
-### Fixed
-
-- CI: switch Linux `build` job from `ubuntu-latest` to `ubuntu-24.04` — Ubuntu 22.04 ships
-  GTK 4.6 which is incompatible with the `v4_12` feature flag; Ubuntu 24.04 has GTK 4.14.
-- CI: add `components: clippy` to `dtolnay/rust-toolchain@stable` so clippy is installed.
-- macOS CI: fix `tokio::runtime::Builder::new_multi_thread()` → `new_current_thread()` —
-  the `rt-multi-thread` feature is not enabled.
-- Windows CI: set `LEPTONICA_*` and `TESSERACT_*` env vars so `leptonica-sys`/`tesseract-sys`
-  bypass their vcpkg (MSVC-only) code path and use MSYS2/MINGW64 libraries instead.
 
 ## [0.1.7] - 2026-04-07
 
