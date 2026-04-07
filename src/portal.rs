@@ -69,7 +69,8 @@ where
     });
 }
 
-/// Capture an interactive screenshot via the XDG Desktop Portal.
+/// Capture an interactive screenshot via the XDG Desktop Portal (Linux).
+#[cfg(target_os = "linux")]
 pub async fn request_screenshot() -> Result<String, String> {
     use ashpd::desktop::screenshot::Screenshot;
 
@@ -85,8 +86,38 @@ pub async fn request_screenshot() -> Result<String, String> {
     Ok(response.uri().to_string())
 }
 
-/// Open a file chooser via the XDG FileChooser Portal.
-/// Returns `None` if the user cancelled.
+/// Capture an interactive screenshot using `screencapture -i` (macOS).
+#[cfg(target_os = "macos")]
+pub async fn request_screenshot() -> Result<String, String> {
+    let path = std::env::temp_dir().join("rustylens_screenshot.png");
+    let path_str = path.to_string_lossy().to_string();
+    let status = tokio::task::spawn_blocking({
+        let path_str = path_str.clone();
+        move || {
+            std::process::Command::new("screencapture")
+                .args(["-i", &path_str])
+                .status()
+        }
+    })
+    .await
+    .map_err(|e| e.to_string())?
+    .map_err(|e| format!("screencapture failed: {e}"))?;
+
+    if status.success() && path.exists() {
+        Ok(format!("file://{path_str}"))
+    } else {
+        Err("Screenshot cancelled".to_owned())
+    }
+}
+
+/// Screenshot capture is not supported on Windows.
+#[cfg(target_os = "windows")]
+pub async fn request_screenshot() -> Result<String, String> {
+    Err("Screenshot capture is not supported on Windows".to_owned())
+}
+
+/// Open a file chooser via the XDG FileChooser Portal (Linux).
+#[cfg(target_os = "linux")]
 pub async fn pick_file() -> Result<Option<String>, String> {
     use ashpd::desktop::file_chooser::OpenFileRequest;
 
@@ -105,6 +136,25 @@ pub async fn pick_file() -> Result<Option<String>, String> {
     }
 
     Ok(Some(uris[0].to_string()))
+}
+
+/// Open a native file chooser dialog (macOS / Windows).
+/// Returns `None` if the user cancelled.
+#[cfg(not(target_os = "linux"))]
+pub async fn pick_file() -> Result<Option<String>, String> {
+    let path = tokio::task::spawn_blocking(|| {
+        rfd::FileDialog::new()
+            .add_filter(
+                "Images",
+                &["png", "jpg", "jpeg", "bmp", "tiff", "tif", "webp", "gif"],
+            )
+            .pick_file()
+    })
+    .await
+    .map_err(|e| e.to_string())?;
+
+    // Return the raw path string; uri_to_path handles both file:// URIs and plain paths.
+    Ok(path.map(|p| p.to_string_lossy().into_owned()))
 }
 
 /// Convert a `file://` URI to a filesystem path, decoding percent-encoded

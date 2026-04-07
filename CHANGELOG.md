@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- macOS support: file chooser uses native NSOpenPanel via `rfd`; screenshot uses `screencapture -i`.
+- Windows support: file chooser uses native IFileDialog via `rfd`.
+- `ashpd` (XDG Desktop Portal) is now a Linux-only dependency; `rfd` is used on macOS and Windows.
+- GitHub Actions CI now checks compilation on macOS and Windows (MSYS2/MINGW64) on every push.
+- Release workflow now publishes a macOS DMG (`RustyLens-<arch>-apple-darwin.dmg`) and
+  a Windows zip (`rustylens-windows-x86_64.zip`) alongside the existing Linux artifacts.
+
 ## [0.1.7] - 2026-04-07
 
 ### Added

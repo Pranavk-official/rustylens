@@ -1,5 +1,6 @@
 .PHONY: help build run check fmt clippy appimage appimage-install \
-        install install-langs test-docker clean release test-makefile
+        install install-langs uninstall test-docker clean release \
+        test-makefile test-makefile-rust test-act test-act-ci test-act-release
 
 # Default target
 help:
@@ -21,6 +22,9 @@ help:
 	@echo "  make test-docker     run full Docker test suite (install + build + Makefile)"
 	@echo "  make test-makefile   run Makefile targets test only (Docker, all distros)"
 	@echo "  make test-makefile-rust  also test Rust targets on ubuntu (slow)"
+	@echo "  make test-act        run CI + release workflows locally via act"
+	@echo "  make test-act-ci     run CI workflow only via act"
+	@echo "  make test-act-release  run release linux jobs via act (slow)"
 	@echo "  make clean           remove build artefacts"
 	@echo "  make release         build release binary"
 
@@ -79,6 +83,15 @@ test-makefile:
 
 test-makefile-rust:
 	./local-scripts/test-makefile.sh --rust
+
+test-act:
+	./local-scripts/test-act.sh --no-flatpak
+
+test-act-ci:
+	./local-scripts/test-act.sh --ci
+
+test-act-release:
+	./local-scripts/test-act.sh --release --no-flatpak
 
 # ── Maintenance ─────────────────────────────────────────────────────────────
 

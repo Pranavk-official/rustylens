@@ -11,18 +11,21 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
       - name: Install system dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y clang libleptonica-dev libtesseract-dev tesseract-ocr-eng \
+          SUDO="$(command -v sudo 2>/dev/null || true)"
+          $SUDO apt-get update
+          $SUDO apt-get install -y clang libleptonica-dev libtesseract-dev tesseract-ocr-eng \
             libgtk-4-dev libadwaita-1-dev
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
 
       - name: Cache cargo
         uses: actions/cache@v4
@@ -38,3 +41,60 @@ jobs:
 
       - name: Run clippy
         run: cargo clippy -- -D warnings
+
+  check-macos:
+    name: Check (macOS)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: brew install gtk4 libadwaita leptonica tesseract pkg-config
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Check
+        run: cargo check
+
+      - name: Clippy
+        run: cargo clippy -- -D warnings
+
+  check-windows:
+    name: Check (Windows / MSYS2)
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-rust
+            mingw-w64-x86_64-gtk4
+            mingw-w64-x86_64-libadwaita
+            mingw-w64-x86_64-tesseract-ocr
+            mingw-w64-x86_64-leptonica
+            mingw-w64-x86_64-clang
+            mingw-w64-x86_64-pkgconf
+
+      - name: Check
+        env:
+          LIBCLANG_PATH: /mingw64/bin
+          PKG_CONFIG_PATH: /mingw64/lib/pkgconfig
+        run: cargo check

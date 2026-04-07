@@ -14,14 +14,15 @@ env:
 jobs:
   binary:
     name: Build binary
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
       - name: Install system dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y clang libleptonica-dev libtesseract-dev tesseract-ocr-eng \
+          SUDO="$(command -v sudo 2>/dev/null || true)"
+          $SUDO apt-get update
+          $SUDO apt-get install -y clang libleptonica-dev libtesseract-dev tesseract-ocr-eng \
             libgtk-4-dev libadwaita-1-dev
 
       - name: Setup Rust
@@ -192,9 +193,206 @@ jobs:
           name: appimage
           path: "*.AppImage"
 
+  macos:
+    name: Build macOS DMG
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          brew install gtk4 libadwaita leptonica tesseract pkg-config \
+            dylibbundler create-dmg adwaita-icon-theme
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-release-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build release binary
+        run: cargo build --release
+
+      - name: Create .app bundle
+        run: |
+          APP="RustyLens.app"
+          BREW_PREFIX="$(brew --prefix)"
+          mkdir -p "$APP/Contents/MacOS"
+          mkdir -p "$APP/Contents/Resources/schemas"
+          mkdir -p "$APP/Contents/libs"
+
+          # Launcher wrapper that sets GTK env vars before exec-ing the binary
+          cat > "$APP/Contents/MacOS/rustylens" << 'LAUNCHER'
+          #!/bin/bash
+          SELF="$(cd "$(dirname "$0")"; pwd -P)"
+          APP="$(cd "$SELF/../.."; pwd -P)"
+          export DYLD_LIBRARY_PATH="$APP/Contents/libs:${DYLD_LIBRARY_PATH:-}"
+          export GSETTINGS_SCHEMA_DIR="$APP/Contents/Resources/schemas"
+          export GDK_PIXBUF_MODULE_FILE="$APP/Contents/Resources/loaders.cache"
+          export XDG_DATA_DIRS="$APP/Contents/Resources:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+          exec "$SELF/rustylens_bin" "$@"
+          LAUNCHER
+          chmod +x "$APP/Contents/MacOS/rustylens"
+
+          cp target/release/rustylens "$APP/Contents/MacOS/rustylens_bin"
+
+          # Info.plist
+          TAG="${GITHUB_REF#refs/tags/v}"
+          cat > "$APP/Contents/Info.plist" << PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>CFBundleName</key><string>RustyLens</string>
+            <key>CFBundleIdentifier</key><string>io.github.pranavk_official.RustyLens</string>
+            <key>CFBundleVersion</key><string>${TAG}</string>
+            <key>CFBundleShortVersionString</key><string>${TAG}</string>
+            <key>CFBundleExecutable</key><string>rustylens</string>
+            <key>CFBundlePackageType</key><string>APPL</string>
+            <key>NSHighResolutionCapable</key><true/>
+          </dict></plist>
+          PLIST
+
+          # Bundle dylibs
+          dylibbundler -od -b \
+            -x "$APP/Contents/MacOS/rustylens_bin" \
+            -d "$APP/Contents/libs" \
+            -p @executable_path/../libs/ \
+            -s "$BREW_PREFIX/lib" || true
+
+          # Compile and bundle GLib schemas
+          cp "$BREW_PREFIX/share/glib-2.0/schemas/"*.xml \
+            "$APP/Contents/Resources/schemas/" 2>/dev/null || true
+          glib-compile-schemas "$APP/Contents/Resources/schemas/"
+
+          # GDK pixbuf loaders
+          PIXBUF_MODDIR="$(pkg-config --variable=gdk_pixbuf_moduledir gdk-pixbuf-2.0 2>/dev/null || \
+            echo "$BREW_PREFIX/lib/gdk-pixbuf-2.0/2.10.0/loaders")"
+          mkdir -p "$APP/Contents/Resources/loaders"
+          cp "$PIXBUF_MODDIR/"*.so "$APP/Contents/Resources/loaders/" 2>/dev/null || \
+            cp "$PIXBUF_MODDIR/"*.dylib "$APP/Contents/Resources/loaders/" 2>/dev/null || true
+          gdk-pixbuf-query-loaders "$APP/Contents/Resources/loaders/"* \
+            > "$APP/Contents/Resources/loaders.cache" 2>/dev/null || true
+
+          # Adwaita icon theme (needed by libadwaita)
+          mkdir -p "$APP/Contents/Resources/icons"
+          cp -r "$BREW_PREFIX/share/icons/Adwaita" \
+            "$APP/Contents/Resources/icons/" 2>/dev/null || true
+          cp -r "$BREW_PREFIX/share/icons/hicolor" \
+            "$APP/Contents/Resources/icons/" 2>/dev/null || true
+
+      - name: Create DMG
+        run: |
+          ARCH="$(uname -m)"
+          create-dmg \
+            --volname "RustyLens" \
+            --window-size 600 340 \
+            --icon-size 100 \
+            --icon "RustyLens.app" 175 147 \
+            --hide-extension "RustyLens.app" \
+            --app-drop-link 425 147 \
+            "RustyLens-${ARCH}-apple-darwin.dmg" \
+            "RustyLens.app/" \
+          || hdiutil create \
+            -srcfolder RustyLens.app \
+            -volname RustyLens \
+            -format UDZO \
+            -o "RustyLens-${ARCH}-apple-darwin.dmg"
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: "RustyLens-*-apple-darwin.dmg"
+
+  windows:
+    name: Build Windows .exe
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-rust
+            mingw-w64-x86_64-gtk4
+            mingw-w64-x86_64-libadwaita
+            mingw-w64-x86_64-tesseract-ocr
+            mingw-w64-x86_64-leptonica
+            mingw-w64-x86_64-clang
+            mingw-w64-x86_64-pkgconf
+            mingw-w64-x86_64-gdk-pixbuf2
+            mingw-w64-x86_64-adwaita-icon-theme
+            zip
+
+      - name: Build release binary
+        env:
+          LIBCLANG_PATH: /mingw64/bin
+          PKG_CONFIG_PATH: /mingw64/lib/pkgconfig
+        run: cargo build --release
+
+      - name: Bundle DLLs and data files
+        run: |
+          mkdir -p dist/share/glib-2.0/schemas
+          mkdir -p dist/share/icons
+          mkdir -p dist/lib/gdk-pixbuf-2.0/2.10.0/loaders
+
+          cp target/release/rustylens.exe dist/
+
+          # Collect required DLLs
+          ldd target/release/rustylens.exe \
+            | grep -i mingw \
+            | awk '{print $3}' \
+            | xargs -I{} cp -n {} dist/ 2>/dev/null || true
+
+          # gdbus.exe (needed by GLib/GIO)
+          cp /mingw64/bin/gdbus.exe dist/ 2>/dev/null || true
+
+          # GLib schemas
+          cp /mingw64/share/glib-2.0/schemas/*.xml \
+            dist/share/glib-2.0/schemas/ 2>/dev/null || true
+          glib-compile-schemas dist/share/glib-2.0/schemas/
+
+          # GDK pixbuf loaders
+          cp /mingw64/lib/gdk-pixbuf-2.0/2.10.0/loaders/*.dll \
+            dist/lib/gdk-pixbuf-2.0/2.10.0/loaders/ 2>/dev/null || true
+          GDK_PIXBUF_MODULEDIR=dist/lib/gdk-pixbuf-2.0/2.10.0/loaders \
+            gdk-pixbuf-query-loaders \
+            > dist/lib/gdk-pixbuf-2.0/2.10.0/loaders.cache 2>/dev/null || true
+
+          # Adwaita icon theme
+          cp -r /mingw64/share/icons/Adwaita dist/share/icons/ 2>/dev/null || true
+          cp -r /mingw64/share/icons/hicolor dist/share/icons/ 2>/dev/null || true
+
+          # Tessdata (English pack)
+          mkdir -p dist/share/tessdata
+          cp /mingw64/share/tessdata/eng.traineddata \
+            dist/share/tessdata/ 2>/dev/null || true
+
+      - name: Create zip archive
+        run: |
+          cd dist
+          zip -r ../rustylens-windows-x86_64.zip .
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: rustylens-windows-x86_64.zip
+
   release:
     name: Publish release
-    needs: [binary, flatpak, appimage]
+    needs: [binary, flatpak, appimage, macos, windows]
     if: always() && contains(needs.*.result, 'success')
     runs-on: ubuntu-latest
     steps:
@@ -228,6 +426,18 @@ jobs:
         with:
           name: appimage
 
+      - name: Download macOS artifact
+        if: needs.macos.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: macos
+
+      - name: Download Windows artifact
+        if: needs.windows.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: windows
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -236,4 +446,6 @@ jobs:
             rustylens-linux-x86_64.tar.gz
             rustylens.flatpak
             RustyLens-*.AppImage
+            RustyLens-*-apple-darwin.dmg
+            rustylens-windows-x86_64.zip
           fail_on_unmatched_files: false

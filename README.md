@@ -28,10 +28,11 @@ Built with Rust, GTK4, and libadwaita.
 
 **Runtime dependencies:**
 
-- GTK 4.12+
-- libadwaita 1.4+
-- Tesseract OCR engine
-- At least one Tesseract language data pack
+| Platform | Required |
+|----------|----------|
+| **Linux** | GTK4, libadwaita, Tesseract, leptonica (see distro sections below) |
+| **macOS** | `brew install gtk4 libadwaita leptonica tesseract` |
+| **Windows** | Bundled in the release `.zip` (MSYS2/MINGW64 DLLs included) |
 
 **Build dependencies (in addition to the above):**
 
@@ -79,6 +80,8 @@ Download from [GitHub Releases](https://github.com/Pranavk-official/rustylens/re
 | `rustylens-linux-x86_64.tar.gz` | Standalone binary (requires system GTK4, libadwaita, Tesseract) |
 | `rustylens.flatpak` | Self-contained Flatpak bundle with all 128 language packs |
 | `RustyLens-x86_64.AppImage` | Portable AppImage with GTK4 and all libraries bundled |
+| `RustyLens-*-apple-darwin.dmg` | macOS DMG with bundled dylibs (requires Tesseract tessdata) |
+| `rustylens-windows-x86_64.zip` | Windows zip with bundled DLLs and English tessdata |
 
 #### AppImage — one-command install with `install.sh`
 

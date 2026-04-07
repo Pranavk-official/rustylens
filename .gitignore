@@ -9,25 +9,43 @@ build-dir/
 repo/
 *.flatpak
 
-# AppImage
+# AppImage / distribution artifacts
 AppDir/
 AppRun
+squashfs-root/
 *.AppImage
 linuxdeploy*
 
-# IDE
+# OS metadata
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# Editor / IDE
 .idea/
 .vscode/
 *.swp
 *.swo
 *~
+*.orig
 
-# Claude Code
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+*.logs.txt
+nohup.out
+
+# AI / LLM tooling (machine-local)
 skills-lock.json
-.agents/
 .claude/
 
-*.logs.txt
-
-squashfs-root/
+# Local development scripts (not for CI)
 local-scripts/
+
+# Local act configuration (developer-specific, not for CI)
+.actrc
+.github/act-events/
