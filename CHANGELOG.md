@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-04-07
+
+### Added
+
+- `install.sh --update`: fetch the latest release from GitHub and replace the
+  installed binary in-place; re-downloads the same format (binary or AppImage)
+  that was originally installed; optionally updates Tesseract language packs when
+  `--langs` flags are passed alongside `--update`.
+- `install.sh --appimage`: opt-in flag to install/update as an AppImage instead
+  of the default standalone binary tarball.
+- `install.sh --local PATH`: install from a local file (binary or AppImage) instead
+  of downloading from GitHub; usable with `--update` for offline upgrades.
+
+### Changed
+
+- `install.sh` default behaviour changed: the script now downloads the standalone
+  binary tarball from GitHub releases rather than requiring a local AppImage file.
+  Pass `--appimage` to use the AppImage format instead.
+- `install.sh --appimage` is now a boolean flag (no argument required) instead of
+  a path argument; use `--local PATH` to install from a local file.
+- Install method is persisted to `$PREFIX/share/rustylens/.install_method` so that
+  `--update` and `--uninstall` automatically operate on what was originally installed.
+
 ## [0.1.9] - 2026-04-07
 
 ### Fixed

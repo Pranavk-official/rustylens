@@ -32,7 +32,10 @@ TESSDATA_BASE="https://github.com/tesseract-ocr/tessdata_fast/raw/main"
 # ── Architecture (normalise arm64 → aarch64 for AppImage naming) ─────────────
 ARCH="$(uname -m)"
 case "$ARCH" in arm64) ARCH="aarch64" ;; esac
-DEFAULT_APPIMAGE="./RustyLens-${ARCH}.AppImage"
+
+# ── GitHub release endpoint ───────────────────────────────────────────────────
+GITHUB_REPO="Pranavk-official/rustylens"
+RELEASE_API="https://api.github.com/repos/${GITHUB_REPO}/releases/latest"
 
 # ── Sudo wrapper (empty when already root, e.g. in Docker CI) ────────────────
 SUDO_CMD="sudo"
@@ -127,11 +130,13 @@ LANGS_FULL=(
 
 # ── Defaults ─────────────────────────────────────────────────────────────────
 PREFIX="${RUSTYLENS_PREFIX:-${HOME}/.local}"
-APPIMAGE_SRC=""
+INSTALL_METHOD="binary"  # "binary" (tarball) or "appimage"; --appimage sets this
+LOCAL_SRC=""             # path to a local file; set by --local PATH
 SELECTED_LANGS=()
 NO_LANGS=0
 NO_DESKTOP=0
 DO_UNINSTALL=0
+DO_UPDATE=0
 FORCE_DOWNLOAD=0  # download .traineddata directly even if a pkg manager is available
 
 # ── Usage ────────────────────────────────────────────────────────────────────
@@ -158,13 +163,15 @@ ${BOLD}install.sh${NC} — Install RustyLens with Tesseract OCR language support
     --no-langs     Skip Tesseract language installation entirely
 
   ${BOLD}Install options:${NC}
-    --appimage PATH   AppImage to install  (default: ./RustyLens-<arch>.AppImage)
+    --appimage        Install as AppImage instead of standalone binary
+    --local PATH      Install from a local file instead of downloading from GitHub
     --prefix DIR      Installation prefix  (default: ~/.local)
                       Also read from \$RUSTYLENS_PREFIX
     --no-desktop      Skip .desktop file registration
     --download        Force direct tessdata download instead of package manager
     --yes, -y         Non-interactive; skip all y/N prompts (also: NONINTERACTIVE=1)
     --uninstall       Remove RustyLens (binary, desktop entry, icon)
+    --update          Download and install the latest release from GitHub
     -h, --help        Show this help
 
   ${BOLD}Installation layout:${NC}
@@ -174,11 +181,14 @@ ${BOLD}install.sh${NC} — Install RustyLens with Tesseract OCR language support
     Tessdata: System dir (pkg manager) or PREFIX/share/tessdata (--download)
 
   ${BOLD}Examples:${NC}
-    ./install.sh --minimal
+    ./install.sh --minimal                           # binary from GitHub + English
+    ./install.sh --appimage --minimal                # AppImage from GitHub + English
+    ./install.sh --local ./RustyLens-x86_64.AppImage # install a local AppImage
     ./install.sh --european --asian
     ./install.sh --full --download
     ./install.sh --langs "eng fra jpn chi_sim"
     ./install.sh --uninstall
+    ./install.sh --update
     NONINTERACTIVE=1 ./install.sh --minimal  # CI / scripted install
 EOF
 }
@@ -211,14 +221,16 @@ while [[ $# -gt 0 ]]; do
       shift 2 ;;
     --no-langs)   NO_LANGS=1        ; shift ;;
     --download)   FORCE_DOWNLOAD=1  ; shift ;;
-    --appimage)
-      [[ $# -gt 1 ]] || die "--appimage requires a path argument"
-      APPIMAGE_SRC="$2" ; shift 2 ;;
+    --appimage)   INSTALL_METHOD="appimage" ; shift ;;
+    --local)
+      [[ $# -gt 1 ]] || die "--local requires a path argument"
+      LOCAL_SRC="$2" ; shift 2 ;;
     --prefix)
       [[ $# -gt 1 ]] || die "--prefix requires a path argument"
       PREFIX="$2" ; shift 2 ;;
     --no-desktop) NO_DESKTOP=1  ; shift ;;
     --uninstall)  DO_UNINSTALL=1; shift ;;
+    --update)     DO_UPDATE=1   ; shift ;;
     --yes|-y)     YES=1         ; shift ;;
     -h|--help)    usage ; exit 0 ;;
     *) die "Unknown option: $1  (run with --help for usage)" ;;
@@ -234,6 +246,7 @@ SHARE_DIR="${PREFIX}/share"
 DESKTOP_DIR="${SHARE_DIR}/applications"
 ICONS_DIR="${SHARE_DIR}/icons/hicolor/scalable/apps"
 LOCAL_TESSDATA="${SHARE_DIR}/tessdata"
+METADATA_FILE="${SHARE_DIR}/${APP_NAME}/.install_method"
 
 # ── Detect package manager ────────────────────────────────────────────────────
 detect_pm() {
@@ -297,6 +310,7 @@ do_uninstall() {
     "${BIN_DIR}/${APP_NAME}"
     "${DESKTOP_DIR}/${APP_ID}.desktop"
     "${ICONS_DIR}/${APP_ID}.svg"
+    "$METADATA_FILE"
   )
 
   for f in "${TARGETS[@]}"; do
@@ -395,22 +409,93 @@ install_langs_download() {
   echo -e "  Add that to your ~/.bashrc or ~/.profile."
 }
 
-# ── Install AppImage ──────────────────────────────────────────────────────────
-install_appimage() {
-  local src="${APPIMAGE_SRC:-$DEFAULT_APPIMAGE}"
+# ── Fetch a release asset URL from GitHub ────────────────────────────────────
+# Prints "tag|download_url" to stdout. Dies on failure.
+fetch_release_asset() {
+  local pattern="$1"
+  local tmp_json
+  tmp_json="$(mktemp /tmp/rustylens-release-XXXXXX.json)"
 
-  [[ -f "$src" ]] \
-    || die "AppImage not found: ${src}
-  Build it first:   ./build-appimage.sh
-  Or specify one:   --appimage /path/to/RustyLens.AppImage"
+  download_file "$RELEASE_API" "$tmp_json" \
+    || { rm -f "$tmp_json"; die "Failed to fetch release info from GitHub."; }
+
+  local tag url
+  tag="$(grep '"tag_name"' "$tmp_json" \
+    | sed 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')"
+  url="$(grep '"browser_download_url"' "$tmp_json" \
+    | grep "$pattern" \
+    | sed 's/.*"browser_download_url"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/' \
+    | head -1)"
+  rm -f "$tmp_json"
+
+  [[ -n "$tag" ]] || die "Could not determine latest version from GitHub API."
+  [[ -n "$url" ]] || die "No release asset matching '${pattern}' found in ${tag}."
+  echo "${tag}|${url}"
+}
+
+# ── Save install method to metadata file ──────────────────────────────────────
+save_install_metadata() {
+  mkdir -p "${SHARE_DIR}/${APP_NAME}"
+  echo "$INSTALL_METHOD" > "$METADATA_FILE"
+}
+
+# ── Install AppImage ──────────────────────────────────────────────────────────
+# If LOCAL_SRC is set, installs from that path; otherwise downloads from GitHub.
+install_appimage() {
+  local src="$LOCAL_SRC"
+  local tmp_img=""
+
+  if [[ -z "$src" ]]; then
+    info "Fetching latest AppImage from GitHub…"
+    local result; result="$(fetch_release_asset "RustyLens-${ARCH}.AppImage")"
+    local tag="${result%%|*}" url="${result##*|}"
+    tmp_img="$(mktemp /tmp/rustylens-XXXXXX.AppImage)"
+    info "Downloading RustyLens ${tag} (AppImage)…"
+    download_file "$url" "$tmp_img" \
+      || { rm -f "$tmp_img"; die "Download failed."; }
+    src="$tmp_img"
+  else
+    [[ -f "$src" ]] || die "Local file not found: ${src}"
+  fi
 
   verify_appimage "$src" \
-    || die "File does not look like a valid AppImage (ELF check failed): ${src}"
+    || { rm -f "$tmp_img"; die "File does not look like a valid AppImage (ELF check failed): ${src}"; }
 
   info "Installing AppImage → ${BIN_DIR}/${APP_NAME}…"
   mkdir -p "$BIN_DIR"
   cp "$src" "${BIN_DIR}/${APP_NAME}"
   chmod +x "${BIN_DIR}/${APP_NAME}"
+  [[ -n "$tmp_img" ]] && rm -f "$tmp_img"
+  success "${BIN_DIR}/${APP_NAME}  ($(du -sh "${BIN_DIR}/${APP_NAME}" | cut -f1))"
+}
+
+# ── Install standalone binary (tarball from GitHub or local file) ─────────────
+install_binary() {
+  local src="$LOCAL_SRC"
+  local tmp_tar=""
+
+  if [[ -z "$src" ]]; then
+    info "Fetching latest binary from GitHub…"
+    local result; result="$(fetch_release_asset "rustylens-linux-${ARCH}.tar.gz")"
+    local tag="${result%%|*}" url="${result##*|}"
+    tmp_tar="$(mktemp /tmp/rustylens-XXXXXX.tar.gz)"
+    info "Downloading rustylens ${tag} (binary)…"
+    download_file "$url" "$tmp_tar" \
+      || { rm -f "$tmp_tar"; die "Download failed."; }
+    src="$tmp_tar"
+  else
+    [[ -f "$src" ]] || die "Local file not found: ${src}"
+  fi
+
+  info "Installing binary → ${BIN_DIR}/${APP_NAME}…"
+  mkdir -p "$BIN_DIR"
+  if [[ "$src" == *.tar.gz || "$src" == *.tgz ]]; then
+    tar xzf "$src" -C "$BIN_DIR" rustylens
+  else
+    cp "$src" "${BIN_DIR}/${APP_NAME}"
+  fi
+  chmod +x "${BIN_DIR}/${APP_NAME}"
+  [[ -n "$tmp_tar" ]] && rm -f "$tmp_tar"
   success "${BIN_DIR}/${APP_NAME}  ($(du -sh "${BIN_DIR}/${APP_NAME}" | cut -f1))"
 }
 
@@ -442,6 +527,125 @@ install_desktop() {
     && gtk-update-icon-cache -f -t "${SHARE_DIR}/icons/hicolor" 2>/dev/null || true
 }
 
+# ── Update ────────────────────────────────────────────────────────────────────
+do_update() {
+  local installed_bin="${BIN_DIR}/${APP_NAME}"
+  [[ -f "$installed_bin" ]] \
+    || die "RustyLens is not installed at ${installed_bin}. Run without --update to install first."
+
+  # Determine install method: saved metadata wins unless overridden by --appimage flag
+  if [[ -f "$METADATA_FILE" ]]; then
+    local saved_method; saved_method="$(cat "$METADATA_FILE")"
+    # Only use saved method when the user didn't explicitly pass --appimage
+    [[ "$INSTALL_METHOD" == "binary" ]] && INSTALL_METHOD="$saved_method"
+  fi
+
+  # If a local file was provided, reinstall from it directly (no GitHub check needed)
+  if [[ -n "$LOCAL_SRC" ]]; then
+    info "Updating from local file: ${LOCAL_SRC}"
+    if [[ "$INSTALL_METHOD" == "appimage" ]]; then
+      install_appimage
+    else
+      install_binary
+    fi
+    save_install_metadata
+    return 0
+  fi
+
+  # Get current version
+  local current_ver
+  current_ver="$("$installed_bin" --version 2>/dev/null | awk '{print $2}')" || true
+  [[ -n "$current_ver" ]] || current_ver="unknown"
+  info "Installed version : ${current_ver}  (format: ${INSTALL_METHOD})"
+
+  # Select the right GitHub asset based on install method
+  local asset_pattern
+  if [[ "$INSTALL_METHOD" == "appimage" ]]; then
+    asset_pattern="RustyLens-${ARCH}.AppImage"
+  else
+    asset_pattern="rustylens-linux-${ARCH}.tar.gz"
+  fi
+
+  info "Checking for updates…"
+  local tmp_json
+  tmp_json="$(mktemp /tmp/rustylens-update-XXXXXX.json)"
+
+  download_file "$RELEASE_API" "$tmp_json" \
+    || { rm -f "$tmp_json"; die "Failed to fetch release info from GitHub."; }
+
+  local latest_ver download_url
+  latest_ver="$(grep '"tag_name"' "$tmp_json" \
+    | sed 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')"
+  download_url="$(grep '"browser_download_url"' "$tmp_json" \
+    | grep "$asset_pattern" \
+    | sed 's/.*"browser_download_url"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/' \
+    | head -1)"
+  rm -f "$tmp_json"
+
+  [[ -n "$latest_ver" ]] || die "Could not determine latest version from GitHub API."
+  [[ -n "$download_url" ]] || die "No ${asset_pattern} found in release ${latest_ver}."
+
+  info "Latest version    : ${latest_ver}"
+
+  # Already up to date?
+  local cur_stripped="${current_ver#v}" latest_stripped="${latest_ver#v}"
+  if [[ "$cur_stripped" == "$latest_stripped" ]]; then
+    success "RustyLens is already up to date (${latest_ver})."
+    return 0
+  fi
+
+  echo ""
+  echo -e "  ${BOLD}Update available:${NC} ${current_ver} → ${latest_ver}  (${INSTALL_METHOD})"
+  echo -e "  Binary: ${installed_bin}"
+  echo ""
+
+  if [[ $YES -eq 0 ]]; then
+    ask "Download and install ${latest_ver}? [Y/n]"
+    read -r answer
+    [[ "$answer" =~ ^[Nn]$ ]] && { warn "Update cancelled."; return 0; }
+  fi
+
+  # Download the new release to a temp file, then replace the installed binary
+  local tmp_file
+  if [[ "$INSTALL_METHOD" == "appimage" ]]; then
+    tmp_file="$(mktemp /tmp/rustylens-XXXXXX.AppImage)"
+    info "Downloading ${asset_pattern} (${latest_ver})…"
+    download_file "$download_url" "$tmp_file" \
+      || { rm -f "$tmp_file"; die "Download failed."; }
+    verify_appimage "$tmp_file" \
+      || { rm -f "$tmp_file"; die "Downloaded file does not look like a valid AppImage (ELF check failed)."; }
+    cp "$tmp_file" "$installed_bin"
+    chmod +x "$installed_bin"
+  else
+    tmp_file="$(mktemp /tmp/rustylens-XXXXXX.tar.gz)"
+    info "Downloading ${asset_pattern} (${latest_ver})…"
+    download_file "$download_url" "$tmp_file" \
+      || { rm -f "$tmp_file"; die "Download failed."; }
+    tar xzf "$tmp_file" -C "$BIN_DIR" rustylens
+    chmod +x "$installed_bin"
+  fi
+  rm -f "$tmp_file"
+
+  success "Updated to ${latest_ver}.  ($(du -sh "$installed_bin" | cut -f1))"
+
+  # Optionally update language packs if any --langs flags were passed
+  if [[ $NO_LANGS -eq 0 && ${#SELECTED_LANGS[@]} -gt 0 ]]; then
+    echo ""
+    info "Updating Tesseract language packs: ${SELECTED_LANGS[*]}"
+    if [[ $FORCE_DOWNLOAD -eq 1 ]]; then
+      install_langs_download "${SELECTED_LANGS[@]}"
+    else
+      local PM; PM="$(detect_pm)"
+      if [[ "$PM" == "none" ]]; then
+        warn "No supported package manager found. Falling back to direct download…"
+        install_langs_download "${SELECTED_LANGS[@]}"
+      else
+        install_langs_pm "$PM" "${SELECTED_LANGS[@]}"
+      fi
+    fi
+  fi
+}
+
 # ────────────────────────────────────────────────────────────────────────────
 # MAIN
 # ────────────────────────────────────────────────────────────────────────────
@@ -455,12 +659,22 @@ if [[ $DO_UNINSTALL -eq 1 ]]; then
   exit 0
 fi
 
+if [[ $DO_UPDATE -eq 1 ]]; then
+  do_update
+  exit 0
+fi
+
 # ── Summary before doing anything ─────────────────────────────────────────────
 echo ""
 echo -e "${BOLD}RustyLens Installer${NC}"
 echo -e "  Distro         : ${DISTRO_NAME}"
 echo -e "  Architecture   : ${ARCH}"
-echo -e "  AppImage src   : ${APPIMAGE_SRC:-$DEFAULT_APPIMAGE}"
+if [[ -n "$LOCAL_SRC" ]]; then
+  echo -e "  Source         : ${LOCAL_SRC} (local)"
+else
+  echo -e "  Source         : GitHub (latest release)"
+fi
+echo -e "  Format         : ${INSTALL_METHOD}"
 echo -e "  Install prefix : ${PREFIX}"
 if [[ $NO_LANGS -eq 1 ]]; then
   echo -e "  Tessdata       : skipped"
@@ -476,7 +690,12 @@ fi
 echo ""
 
 # ── 1. Install binary ─────────────────────────────────────────────────────────
-install_appimage
+if [[ "$INSTALL_METHOD" == "appimage" ]]; then
+  install_appimage
+else
+  install_binary
+fi
+save_install_metadata
 
 # ── 2. Install desktop entry ──────────────────────────────────────────────────
 if [[ $NO_DESKTOP -eq 0 ]]; then
