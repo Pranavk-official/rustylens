@@ -33,7 +33,7 @@ jobs:
           version: "latest"
 
       - name: Install MkDocs Material
-        run: uv run --with mkdocs-material mkdocs build --strict
+        run: uv run --with "mkdocs-material[imaging]" mkdocs build --strict
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

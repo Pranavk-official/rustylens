@@ -4,15 +4,31 @@
 
 ## One-line install
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/Pranavk-official/rustylens/main/install.sh | bash
-```
+=== "curl"
+
+    ```bash
+    curl -fsSL https://pranavk-official.github.io/rustylens/install.sh | bash
+    ```
+
+=== "wget"
+
+    ```bash
+    wget -qO- https://pranavk-official.github.io/rustylens/install.sh | bash
+    ```
 
 Pass options via `bash -s --`:
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/Pranavk-official/rustylens/main/install.sh | bash -s -- --european --yes
-```
+=== "curl"
+
+    ```bash
+    curl -fsSL https://pranavk-official.github.io/rustylens/install.sh | bash -s -- --european --yes
+    ```
+
+=== "wget"
+
+    ```bash
+    wget -qO- https://pranavk-official.github.io/rustylens/install.sh | bash -s -- --european --yes
+    ```
 
 ---
 

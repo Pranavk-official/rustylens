@@ -38,15 +38,32 @@ Built with Rust, GTK4, and libadwaita.
 
 ## Install in one line
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/Pranavk-official/rustylens/main/install.sh | bash
-```
+=== "curl"
+
+    ```bash
+    curl -fsSL https://pranavk-official.github.io/rustylens/install.sh | bash
+    ```
+
+=== "wget"
+
+    ```bash
+    wget -qO- https://pranavk-official.github.io/rustylens/install.sh | bash
+    ```
 
 Or download and inspect first:
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/Pranavk-official/rustylens/main/install.sh -o install.sh
-bash install.sh --minimal
-```
+=== "curl"
+
+    ```bash
+    curl -fsSL https://pranavk-official.github.io/rustylens/install.sh -o install.sh
+    bash install.sh --minimal
+    ```
+
+=== "wget"
+
+    ```bash
+    wget -O install.sh https://pranavk-official.github.io/rustylens/install.sh
+    bash install.sh --minimal
+    ```
 
 → See [Getting Started](getting-started.md) for a step-by-step guide, or [Installation](installation/index.md) for all options.

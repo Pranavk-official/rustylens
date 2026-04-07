@@ -14,9 +14,17 @@ This guide walks you through installing RustyLens and running it for the first t
 
 The `install.sh` script auto-detects your distribution, downloads the correct native binary, and sets up the English Tesseract language pack.
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/Pranavk-official/rustylens/main/install.sh | bash -s -- --minimal
-```
+=== "curl"
+
+    ```bash
+    curl -fsSL https://pranavk-official.github.io/rustylens/install.sh | bash -s -- --minimal
+    ```
+
+=== "wget"
+
+    ```bash
+    wget -qO- https://pranavk-official.github.io/rustylens/install.sh | bash -s -- --minimal
+    ```
 
 The installer will:
 
