@@ -7,14 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.8] - 2026-04-07
+
 ### Added
 
 - macOS support: file chooser uses native NSOpenPanel via `rfd`; screenshot uses `screencapture -i`.
 - Windows support: file chooser uses native IFileDialog via `rfd`.
 - `ashpd` (XDG Desktop Portal) is now a Linux-only dependency; `rfd` is used on macOS and Windows.
-- GitHub Actions CI now checks compilation on macOS and Windows (MSYS2/MINGW64) on every push.
+- GitHub Actions CI now checks compilation on macOS (`check-macos`) and Windows (`check-windows`) on every push.
 - Release workflow now publishes a macOS DMG (`RustyLens-<arch>-apple-darwin.dmg`) and
   a Windows zip (`rustylens-windows-x86_64.zip`) alongside the existing Linux artifacts.
+
+### Fixed
+
+- CI: switch Linux `build` job from `ubuntu-latest` to `ubuntu-24.04` — Ubuntu 22.04 ships
+  GTK 4.6 which is incompatible with the `v4_12` feature flag; Ubuntu 24.04 has GTK 4.14.
+- CI: add `components: clippy` to `dtolnay/rust-toolchain@stable` so clippy is installed.
+- macOS CI: fix `tokio::runtime::Builder::new_multi_thread()` → `new_current_thread()` —
+  the `rt-multi-thread` feature is not enabled.
+- Windows CI: set `LEPTONICA_*` and `TESSERACT_*` env vars so `leptonica-sys`/`tesseract-sys`
+  bypass their vcpkg (MSVC-only) code path and use MSYS2/MINGW64 libraries instead.
 
 ## [0.1.7] - 2026-04-07
 

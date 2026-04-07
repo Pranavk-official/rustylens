@@ -6,9 +6,8 @@ static RUNTIME: OnceLock<tokio::runtime::Runtime> = OnceLock::new();
 
 fn runtime() -> &'static tokio::runtime::Runtime {
     RUNTIME.get_or_init(|| {
-        tokio::runtime::Builder::new_multi_thread()
+        tokio::runtime::Builder::new_current_thread()
             .enable_all()
-            .worker_threads(1)
             .build()
             .expect("failed to build tokio runtime")
     })

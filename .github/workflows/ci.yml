@@ -97,4 +97,10 @@ jobs:
         env:
           LIBCLANG_PATH: /mingw64/bin
           PKG_CONFIG_PATH: /mingw64/lib/pkgconfig
+          LEPTONICA_INCLUDE_PATH: /mingw64/include
+          LEPTONICA_LINK_PATHS: /mingw64/lib
+          LEPTONICA_LINK_LIBS: leptonica
+          TESSERACT_INCLUDE_PATHS: /mingw64/include
+          TESSERACT_LINK_PATHS: /mingw64/lib
+          TESSERACT_LINK_LIBS: tesseract
         run: cargo check
