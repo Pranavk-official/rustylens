@@ -9,6 +9,7 @@ Built with Rust, GTK4, and libadwaita.
 [![CI](https://img.shields.io/github/actions/workflow/status/Pranavk-official/rustylens/ci.yml?branch=main&label=CI)](https://github.com/Pranavk-official/rustylens/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/actions/workflow/status/Pranavk-official/rustylens/release.yml?label=release)](https://github.com/Pranavk-official/rustylens/actions/workflows/release.yml)
 [![Downloads](https://img.shields.io/github/downloads/Pranavk-official/rustylens/total?label=installs&color=brightgreen)](https://github.com/Pranavk-official/rustylens/releases)
+[![Docs](https://img.shields.io/badge/docs-online-blue)](https://pranavk-official.github.io/rustylens/)
 [![Built with Rust](https://img.shields.io/badge/built%20with-Rust-orange?logo=rust)](https://www.rust-lang.org)
 [![GTK4](https://img.shields.io/badge/GTK-4-blueviolet?logo=gnome)](https://gtk.org)
 
@@ -348,7 +349,7 @@ For the full list of codes, see the [Tesseract data files documentation](https:/
 
 ## Contributing
 
-Contributions are welcome! Please open an issue or pull request.
+Contributions are welcome! Please open an issue or pull request. For full documentation see the [docs site](https://pranavk-official.github.io/rustylens/).
 
 When building for development, use the debug build for faster compile times:
 

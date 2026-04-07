@@ -1,6 +1,6 @@
 site_name: RustyLens
 site_description: Lightweight Linux desktop app for OCR text extraction — powered by Rust, GTK4, and Tesseract.
-site_url: https://pranavk-official.github.io/rustylens
+site_url: https://pranavk-official.github.io/rustylens/
 repo_url: https://github.com/Pranavk-official/rustylens
 repo_name: Pranavk-official/rustylens
 edit_uri: edit/main/docs/

@@ -9,4 +9,4 @@ All notable changes to RustyLens are documented below.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
---8<-- "CHANGELOG.md:3:"
+--8<-- "CHANGELOG.md:8:"
