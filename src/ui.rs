@@ -229,15 +229,15 @@ pub fn build_main_window(app: &adw::Application) -> (adw::ApplicationWindow, App
                             return glib::Propagation::Proceed;
                         }
                         let joined = text.join(" ");
-                        if let Some(win) = state.drawing_area.root() {
-                            if let Some(win) = win.downcast_ref::<adw::ApplicationWindow>() {
-                                win.clipboard().set_text(&joined);
-                                state.toast_overlay.add_toast(adw::Toast::new(&format!(
-                                    "Copied {} word{}",
-                                    text.len(),
-                                    if text.len() == 1 { "" } else { "s" }
-                                )));
-                            }
+                        if let Some(win) = state.drawing_area.root()
+                            && let Some(win) = win.downcast_ref::<adw::ApplicationWindow>()
+                        {
+                            win.clipboard().set_text(&joined);
+                            state.toast_overlay.add_toast(adw::Toast::new(&format!(
+                                "Copied {} word{}",
+                                text.len(),
+                                if text.len() == 1 { "" } else { "s" }
+                            )));
                         }
                         glib::Propagation::Stop
                     }

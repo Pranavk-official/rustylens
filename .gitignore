@@ -26,3 +26,5 @@ linuxdeploy*
 skills-lock.json
 .agents/
 .claude/
+
+*.logs.txt

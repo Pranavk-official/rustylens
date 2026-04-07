@@ -59,6 +59,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Setup Rust (for vendoring)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Vendor Rust dependencies
+        run: |
+          cargo --version || true
+          mkdir -p .cargo
+          cargo vendor > .cargo/config
+
+      - name: Check crates.io connectivity
+        run: |
+          host index.crates.io || nslookup index.crates.io || ping -c1 index.crates.io || true
+
       - name: Build Flatpak bundle
         uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:

@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-04-07
+
+### Fixed
+
+- Fix Flatpak CI: vendor Rust dependencies before `flatpak-builder` invocation so crates are available offline during the build
+- Add `--check crates.io` diagnostic step to surface DNS/network issues earlier in the Flatpak job
+
+### Changed
+
+- Refactor nested `if let` chains in `portal.rs` and `ui.rs` to Rust 2024 `let`-chain syntax for cleaner control flow
+- Add `*.logs.txt` to `.gitignore`
+
 ## [0.1.5] - 2026-04-06
 
 ### Fixed
