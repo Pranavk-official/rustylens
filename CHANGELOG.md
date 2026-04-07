@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-04-07
+
+### Fixed
+
+- Fix macOS CI clippy warning: collapse nested `if let` in file chooser callback into a
+  single let-chain (`if let Ok(file) = result && let Some(path) = file.path()`).
+
 ## [0.2.0] - 2026-04-07
 
 ### Added

@@ -1,6 +1,6 @@
 [package]
 name = "rustylens"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2024"
 description = "Lightweight desktop app for image preview and OCR text extraction"
 authors = ["RustyLens Contributors"]

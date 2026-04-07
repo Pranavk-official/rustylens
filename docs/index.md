@@ -1,6 +1,6 @@
 # RustyLens
 
-**Lightweight OCR for the Linux desktop.** &nbsp;·&nbsp; v0.2.0
+**Lightweight OCR for the Linux desktop.** &nbsp;·&nbsp; v0.2.1
 
 Open an image or capture a screenshot, and RustyLens extracts the text using Tesseract — with bounding-box overlays and drag-to-select word copying.
 

@@ -273,10 +273,10 @@ pub fn build_main_window(app: &adw::Application) -> (adw::ApplicationWindow, App
                 win.as_ref(),
                 None::<&gtk::gio::Cancellable>,
                 move |result| {
-                    if let Ok(file) = result {
-                        if let Some(path) = file.path() {
-                            load_image_path(&path.to_string_lossy(), &state);
-                        }
+                    if let Ok(file) = result
+                        && let Some(path) = file.path()
+                    {
+                        load_image_path(&path.to_string_lossy(), &state);
                     }
                 },
             );
