@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.7] - 2026-04-07
+
+### Added
+
+- `install.sh` — cross-distro installer for the AppImage and Tesseract language packs.
+  Supports: Arch (pacman), Debian/Ubuntu (apt), Fedora/RHEL (dnf), openSUSE (zypper),
+  Alpine (apk), Void Linux (xbps-install); falls back to direct tessdata download on
+  unknown distros.
+  Language group flags: `--minimal`, `--european`, `--asian`, `--cyrillic`, `--arabic`,
+  `--indic`, `--full`, `--langs "<codes>"`, `--no-langs`.
+  Additional flags: `--prefix`, `--appimage`, `--no-desktop`, `--download`, `--yes`, `--uninstall`.
+  Non-interactive / CI mode via `NONINTERACTIVE=1` or `CI=true` env vars.
+- `build-appimage.sh` — cross-distro AppImage builder using a two-pass linuxdeploy
+  strategy (deploy-only pass, purge host-specific libs, manual mksquashfs + ELF runtime
+  assembly). Auto-downloads linuxdeploy if not present. Flags: `--skip-build`,
+  `--install`, `--clean`.
+- `Makefile` — common developer tasks: `make build`, `make run`, `make appimage`,
+  `make install`, `make install-langs`, `make test-docker`, `make clean`, `make release`.
+
+### Fixed
+
+- AppImage: exclude `libwayland-*`, `libvulkan`, `libGL*`, `libEGL`, `libdrm`,
+  `libdbus-1`, `libsystemd`, `libudev`, `libXau`, `libXdmcp`, `libxcb*` from the
+  bundle — bundling these caused segfaults because they must come from the host.
+
 ## [0.1.6] - 2026-04-07
 
 ### Fixed

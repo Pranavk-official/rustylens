@@ -28,3 +28,6 @@ skills-lock.json
 .claude/
 
 *.logs.txt
+
+squashfs-root/
+local-scripts/
