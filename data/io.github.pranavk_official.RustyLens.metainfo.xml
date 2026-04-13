@@ -42,11 +42,11 @@
 
   <screenshots>
     <screenshot type="default">
-      <image>https://raw.githubusercontent.com/Pranavk-official/rustylens/main/data/screenshots/main-window.png</image>
+      <image>https://raw.githubusercontent.com/Pranavk-official/rustylens/3588cab8a5fdac9b02c9c51300e3b162cb145a7f/data/screenshots/main-window.png</image>
       <caption>Image preview with OCR word-selection overlay</caption>
     </screenshot>
     <screenshot>
-      <image>https://raw.githubusercontent.com/Pranavk-official/rustylens/main/data/screenshots/screenshot-mode.png</image>
+      <image>https://raw.githubusercontent.com/Pranavk-official/rustylens/3588cab8a5fdac9b02c9c51300e3b162cb145a7f/data/screenshots/screenshot-mode.png</image>
       <caption>Screenshot capture mode with extracted text</caption>
     </screenshot>
   </screenshots>

@@ -96,10 +96,17 @@ When adding portal features, do **not** add explicit `--talk-name=org.freedeskto
 - [ ] Screenshots committed and pushed to `main` (`data/screenshots/*.png`)
 - [ ] Run lint: `flatpak run --command=flatpak-builder-lint org.flatpak.Builder manifest io.github.pranavk_official.RustyLens.json`
 - [ ] Run lint: `flatpak run --command=flatpak-builder-lint org.flatpak.Builder appstream data/io.github.pranavk_official.RustyLens.metainfo.xml`
-- [ ] Fork https://github.com/flathub/flathub
-- [ ] Create branch `new-pr/io.github.pranavk_official.RustyLens`
-- [ ] Add `io.github.pranavk_official.RustyLens.json` + `cargo-sources.json` to the branch
-- [ ] Submit PR to `flathub/flathub`
+- [ ] Build locally: `flatpak run --command=flathub-build org.flatpak.Builder --install io.github.pranavk_official.RustyLens.json`
+- [ ] Test the installed build: `flatpak run io.github.pranavk_official.RustyLens`
+- [ ] Add `flathub.json` if not supporting aarch64 (limits builds to x86_64 only)
+- [ ] Ensure 2FA is enabled on your GitHub account (required for Flathub write access)
+- [ ] Fork https://github.com/flathub/flathub — **uncheck "Copy the master branch only"**
+- [ ] Clone: `git clone --branch=new-pr git@github.com:<your-username>/flathub.git && cd flathub`
+- [ ] Create branch: `git checkout -b add-rustylens new-pr`
+- [ ] Copy `io.github.pranavk_official.RustyLens.json` + `cargo-sources.json` into the repo root
+- [ ] Commit and push
+- [ ] Open PR against the **`new-pr` base branch** (NOT `master`) — title: `"Add io.github.pranavk_official.RustyLens"`
+- [ ] Disable GitHub Copilot auto-review on the PR (Flathub AI policy — see https://github.com/settings/copilot/features)
 
 ### Flathub Update (subsequent releases)
 - [ ] Bump version in `Cargo.toml` and tag the release (`git tag v0.x.y && git push --tags`)

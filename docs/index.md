@@ -13,6 +13,21 @@ Built with Rust, GTK4, and libadwaita.
 
 ---
 
+<div style="display:flex;gap:12px;flex-wrap:wrap;margin:1.5rem 0;">
+  <a href="https://github.com/Pranavk-official/rustylens/releases/latest/download/RustyLens-x86_64.AppImage"
+     style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:6px;background:var(--md-primary-fg-color);color:var(--md-primary-bg-color);font-weight:600;text-decoration:none;font-size:0.9rem;">
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 16l-5-5h3V4h4v7h3l-5 5zm-7 4v-2h14v2H5z"/></svg>
+    Download AppImage
+  </a>
+  <a href="https://github.com/Pranavk-official/rustylens/releases/latest/download/rustylens.flatpak"
+     style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:6px;border:2px solid var(--md-primary-fg-color);color:var(--md-primary-fg-color);font-weight:600;text-decoration:none;font-size:0.9rem;">
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+    Download Flatpak
+  </a>
+</div>
+
+---
+
 ## Screenshots
 
 ![RustyLens main window — bounding-box OCR overlay](assets/screenshots/main-window.png)

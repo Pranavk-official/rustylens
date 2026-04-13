@@ -1,11 +1,11 @@
 {
     "id": "io.github.pranavk_official.RustyLens",
     "runtime": "org.gnome.Platform",
-    "runtime-version": "49",
+    "runtime-version": "48",
     "sdk": "org.gnome.Sdk",
     "sdk-extensions": [
         "org.freedesktop.Sdk.Extension.rust-stable",
-        "org.freedesktop.Sdk.Extension.llvm20"
+        "org.freedesktop.Sdk.Extension.llvm18"
     ],
     "command": "rustylens",
     "finish-args": [
@@ -15,13 +15,13 @@
         "--device=dri"
     ],
     "build-options": {
-        "append-path": "/usr/lib/sdk/rust-stable/bin:/usr/lib/sdk/llvm20/bin",
-        "prepend-ld-library-path": "/usr/lib/sdk/llvm20/lib",
+        "append-path": "/usr/lib/sdk/rust-stable/bin:/usr/lib/sdk/llvm18/bin",
+        "prepend-ld-library-path": "/usr/lib/sdk/llvm18/lib",
         "env": {
             "CARGO_HOME": "/run/build/rustylens/cargo",
             "RUST_BACKTRACE": "1",
             "PKG_CONFIG_PATH": "/app/lib/pkgconfig",
-            "LIBCLANG_PATH": "/usr/lib/sdk/llvm20/lib"
+            "LIBCLANG_PATH": "/usr/lib/sdk/llvm18/lib"
         }
     },
     "modules": [
@@ -36,7 +36,7 @@
             ],
             "post-install": [
                 "cp /app/lib/pkgconfig/lept_Release.pc /app/lib/pkgconfig/lept.pc",
-                "install -Dm644 ../LICENSE /app/share/licenses/io.github.pranavk_official.RustyLens/LICENSE.leptonica"
+                "install -Dm644 ../LICENSE /app/share/licenses/io.github.pranavk_official.RustyLens/leptonica/LICENSE"
             ],
             "sources": [
                 {
@@ -58,7 +58,7 @@
                 "-DLeptonica_DIR=/app/lib/cmake/leptonica"
             ],
             "post-install": [
-                "install -Dm644 ../LICENSE /app/share/licenses/io.github.pranavk_official.RustyLens/LICENSE.tesseract"
+                "install -Dm644 ../LICENSE /app/share/licenses/io.github.pranavk_official.RustyLens/tesseract/LICENSE"
             ],
             "sources": [
                 {
@@ -74,7 +74,8 @@
             "name": "tessdata",
             "buildsystem": "simple",
             "build-commands": [
-                "install -Dm644 *.traineddata -t /app/share/tessdata/"
+                "install -Dm644 *.traineddata -t /app/share/tessdata/",
+                "install -Dm644 LICENSE /app/share/licenses/io.github.pranavk_official.RustyLens/tessdata/LICENSE"
             ],
             "sources": [
                 {
@@ -102,7 +103,7 @@
                 "install -Dm644 data/io.github.pranavk_official.RustyLens.desktop /app/share/applications/io.github.pranavk_official.RustyLens.desktop",
                 "install -Dm644 data/io.github.pranavk_official.RustyLens.metainfo.xml /app/share/metainfo/io.github.pranavk_official.RustyLens.metainfo.xml",
                 "install -Dm644 data/icons/hicolor/scalable/apps/io.github.pranavk_official.RustyLens.svg /app/share/icons/hicolor/scalable/apps/io.github.pranavk_official.RustyLens.svg",
-                "install -Dm644 LICENSE /app/share/licenses/io.github.pranavk_official.RustyLens/LICENSE"
+                "install -Dm644 LICENSE /app/share/licenses/io.github.pranavk_official.RustyLens/rustylens/LICENSE"
             ],
             "sources": [
                 {
